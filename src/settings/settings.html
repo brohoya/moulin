@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'">
+<title>Moulin</title>
+<link rel="stylesheet" href="settings.css">
+</head>
+<body>
+<header class="drag">
+  <img class="logo" src="../../assets/logo.svg" alt="">
+  <div class="title">
+    <h1>Moulin</h1>
+    <p>Dictation with your ChatGPT subscription <span id="version"></span></p>
+  </div>
+  <span id="badge" class="badge"></span>
+</header>
+
+<main>
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <h2>ChatGPT account</h2>
+  <section>
+    <div class="row">
+      <div class="text">
+        <div id="account" class="label"></div>
+        <div class="hint">Moulin keeps the sign-in in its own built-in browser. It does not use Chrome, Brave, or your other browsers.</div>
+      </div>
+      <button id="sign-in" class="primary" type="button">Sign in</button>
+      <button id="sign-out" type="button">Sign out</button>
+    </div>
+  </section>
+
+  <h2>Shortcut</h2>
+  <section>
+    <div class="row">
+      <div class="text">
+        <div class="label">Start and stop a dictation</div>
+        <div class="hint">Click the key, then press the new shortcut. Press Esc during a dictation to cancel it.</div>
+      </div>
+      <button id="hotkey" class="key" type="button" aria-label="Change the shortcut"></button>
+    </div>
+    <p id="hotkey-error" class="error" hidden></p>
+  </section>
+
+  <h2>After a dictation</h2>
+  <section>
+    <label class="row">
+      <div class="text">
+        <div class="label">Paste at the cursor</div>
+        <div class="hint">The text also stays in the clipboard.</div>
+      </div>
+      <input id="autoPaste" class="switch" type="checkbox">
+    </label>
+    <div id="accessibility" class="row" hidden>
+      <div class="text"><div class="hint">macOS needs the Accessibility permission for Moulin to paste.</div></div>
+      <button id="open-accessibility" type="button">Open settings</button>
+    </div>
+  </section>
+
+  <h2>Microphone</h2>
+  <section>
+    <div class="row">
+      <label class="label" for="microphone">Input</label>
+      <select id="microphone"></select>
+    </div>
+  </section>
+
+  <h2>General</h2>
+  <section>
+    <label class="row">
+      <div class="label">Start Moulin at login</div>
+      <input id="openAtLogin" class="switch" type="checkbox">
+    </label>
+    <label class="row">
+      <div class="label">Show the pop-up during a dictation</div>
+      <input id="showOverlay" class="switch" type="checkbox">
+    </label>
+  </section>
+
+  <p class="note">Moulin automates the ChatGPT web app. The OpenAI Terms of Use forbid this, so OpenAI can warn or suspend the account. A change of the web app can also stop Moulin.</p>
+</main>
+<script src="settings.js"></script>
+</body>
+</html>

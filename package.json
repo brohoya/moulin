@@ -1,0 +1,105 @@
+{
+  "name": "moulin",
+  "productName": "Moulin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dictation from the menu bar with the speech-to-text of your ChatGPT subscription",
+  "author": "Bixente Elgart",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "capture": "electron . --capture",
+    "sample": "sh scripts/make-sample.sh",
+    "icons": "node scripts/make-icons.mjs",
+    "e2e": "node scripts/run-e2e.js",
+    "e2e:dev": "electron . --e2e",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "app.moulin",
+    "productName": "Moulin",
+    "copyright": "Bixente Elgart",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "onlyLoadAppFromAsar": true,
+      "resetAdHocDarwinSignature": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSMicrophoneUsageDescription": "Moulin records your voice while you dictate.",
+        "NSAppleEventsUsageDescription": "Moulin pastes the text at the cursor with System Events."
+      }
+    },
+    "dmg": {
+      "title": "Moulin"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "shortcutName": "Moulin"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "icon": "build/icon.png",
+      "synopsis": "Dictation with the speech-to-text of ChatGPT"
+    }
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "electron": "45.0.0",
+    "electron-builder": "26.18.0"
+  }
+}
