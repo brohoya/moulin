@@ -63,7 +63,8 @@ function runWithOpen(args) {
     for (let i = 0; i < 50 && isRunning(); i++) await sleep(200);
   }
   console.log(`E2E in ${binary}`);
-  const args = ['--e2e', `--sample=${path.join(ROOT, 'fixtures', 'fr-sample.wav')}`, `--out=${OUT}`];
+  // Extra arguments go to the test, for example --hold (npm run e2e -- --hold).
+  const args = ['--e2e', `--sample=${path.join(ROOT, 'fixtures', 'fr-sample.wav')}`, `--out=${OUT}`, ...process.argv.slice(2)];
   const status = process.platform === 'darwin' ? runWithOpen(args) : (spawnSync(binary, args, { stdio: 'inherit' }).status ?? 1);
   if (wasRunning) {
     if (process.platform === 'darwin') spawnSync('open', ['-a', bundle]);

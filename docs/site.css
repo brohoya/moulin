@@ -91,64 +91,17 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .scene .tower { fill: var(--tower); }
 .scene .cap, .scene .ring, .scene .sails-face { fill: var(--mill); }
 .scene .hole { fill: var(--field); }
-.scene .halo { opacity: 0; }
 .scene .wind { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; animation: blow linear infinite; }
 .ink .word-inv { fill: var(--field); }
 
 @keyframes blow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: var(--run); } }
-
-.nav {
-  position: absolute;
-  z-index: 3;
-  top: clamp(16px, 3vh, 30px);
-  right: var(--gutter);
-  display: flex;
-  align-items: center;
-  gap: clamp(16px, 2.4vw, 28px);
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.nav a { text-decoration: none; }
-.nav a:hover { text-decoration: underline; }
-
-.listen {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid rgb(255 255 255 / 0.4);
-  border-radius: 999px;
-  background: transparent;
-  color: #fff;
-  font: 500 15px/1 var(--serif);
-  cursor: pointer;
-}
-
-.listen:hover { border-color: #fff; }
-.listen[aria-pressed="true"] { border-color: #fff; background: rgb(255 255 255 / 0.14); }
-.listen svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
-.listen[aria-pressed="true"] svg rect { fill: var(--signal); stroke: var(--signal); }
-
-.listen-note {
-  position: absolute;
-  z-index: 3;
-  top: calc(clamp(16px, 3vh, 30px) + 44px);
-  right: var(--gutter);
-  max-width: 21em;
-  font-size: 14px;
-  line-height: 1.45;
-  text-align: right;
-  color: var(--text-2);
-}
 
 .words {
   position: relative;
   z-index: 1;
   width: min(100%, calc(620px + 2 * var(--gutter)));
   margin-block: auto;
-  padding: 92px var(--gutter) 40px;
+  padding: clamp(48px, 9vh, 96px) var(--gutter) 40px;
 }
 
 .wordmark { margin: 0; line-height: 0; }
@@ -166,9 +119,12 @@ code { font-family: var(--mono); font-size: 0.86em; }
   line-height: 1.3;
 }
 
+.caution { max-width: 34em; margin-top: clamp(18px, 3vh, 26px); font-size: 15.5px; line-height: 1.5; color: var(--text-3); }
+.caution strong { font-weight: 500; color: var(--text-2); }
+
 /* ---------- Install: one tab for each system. ---------- */
 
-.install { max-width: 620px; margin-top: clamp(28px, 4.5vh, 40px); }
+.install { max-width: 620px; margin-top: clamp(30px, 5vh, 48px); }
 
 .tabs {
   display: inline-flex;
@@ -249,17 +205,22 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
 
 .command .copy:hover { background: rgb(255 255 255 / 0.2); }
 
-.caution { max-width: 36em; margin-top: clamp(28px, 5vh, 44px); font-size: 13.5px; line-height: 1.5; color: var(--text-3); }
-.caution strong { font-weight: 500; color: var(--text-2); }
 
 /* The credits, alone at the bottom of the page. */
 .footer {
   position: relative;
   z-index: 1;
-  padding: 56px var(--gutter) 24px;
-  font-size: 13px;
-  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 22px;
+  padding: 56px var(--gutter) 28px;
+  font-size: 16px;
+  color: var(--text-2);
 }
+
+.footer .github { color: #fff; font-weight: 500; text-decoration: none; }
+.footer .github:hover { text-decoration: underline; }
 
 /* ---------- The stacked page: the mill above, the words below. Keep this query equal to "stacked" in site.js. ---------- */
 
@@ -272,9 +233,6 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
 
 @media (max-width: 560px) {
   body { font-size: 17px; }
-  .listen span { display: none; }
-  .listen { padding: 0 10px; }
-  .listen-note { left: var(--gutter); text-align: left; }
   .tab { padding: 8px 14px; }
 }
 

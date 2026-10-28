@@ -10,6 +10,10 @@ const KEYS = {
   Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',',
   Period: '.', Slash: '/', Backquote: '`',
 };
+const MODE_HINTS = {
+  toggle: 'Push the key to start, and push it again to stop.',
+  hold: 'Hold the key while you speak, and release it to stop.',
+};
 let current = null;
 let capturing = false;
 
@@ -42,6 +46,14 @@ function render(snapshot) {
   if (!capturing) $('hotkey').textContent = settings.hotkey ? pretty(settings.hotkey) : 'None';
   $('hotkey-error').hidden = !snapshot.hotkeyError;
   $('hotkey-error').textContent = snapshot.hotkeyError || '';
+  for (const button of document.querySelectorAll('[data-mode]')) {
+    const on = button.dataset.mode === settings.mode;
+    button.setAttribute('aria-checked', String(on));
+    button.tabIndex = on ? 0 : -1;
+  }
+  $('mode-hint').textContent = MODE_HINTS[settings.mode] || MODE_HINTS.toggle;
+  $('mode-error').hidden = !snapshot.holdError;
+  $('mode-error').textContent = snapshot.holdError || '';
   for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) $(key).checked = settings[key];
   $('accessibility').hidden = !(snapshot.platform === 'darwin' && settings.autoPaste && !snapshot.accessibility);
   if ([...$('microphone').options].some((o) => o.value === settings.microphoneId)) $('microphone').value = settings.microphoneId;
@@ -97,6 +109,9 @@ for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) {
 }
 
 $('microphone').addEventListener('change', (event) => update({ microphoneId: event.target.value }));
+for (const button of document.querySelectorAll('[data-mode]')) {
+  button.addEventListener('click', () => update({ mode: button.dataset.mode }));
+}
 $('open-accessibility').addEventListener('click', () => api.openAccessibility());
 
 $('sign-in').addEventListener('click', async () => {

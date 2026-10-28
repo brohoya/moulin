@@ -1,6 +1,5 @@
 // The website: one screen. The sails turn in a light wind, and a drag with the mouse turns them faster.
-// With the visitor's permission, the loudness of the microphone turns them and fills the bars of the sails.
-// Below the words: one tab for each system, with its download.
+// At the start, the sails say the word "moulin": its loudness enters the bars from the hub. Below the words: one tab for each system.
 import { SAIL_FINE, VOICE, barRect, millSvg, sailsSvg, towerParts, windSvg } from './mill.js';
 import { WORDMARK } from './wordmark.js';
 
@@ -9,8 +8,6 @@ const scene = hero.querySelector('.scene');
 const ink = hero.querySelector('.ink');
 const word = hero.querySelector('.wordmark svg');
 const words = hero.querySelector('.words');
-const listen = document.getElementById('listen');
-const note = document.getElementById('listen-note');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 // Keep this query equal to the query of the stacked page in site.css.
 const stacked = matchMedia('(max-width: 979px), (max-aspect-ratio: 5/4)');
@@ -22,7 +19,7 @@ const IDLE = -12; // Degrees per second: one turn in 30 seconds, counterclockwis
 const STEP_MS = 70; // A new loudness value enters the sails at the hub at this interval.
 const r2 = (n) => Math.round(n * 100) / 100;
 
-const view = { W: 0, H: 0, hub: [0, 0], scale: 1, groups: [], bars: [], halo: null };
+const view = { W: 0, H: 0, hub: [0, 0], scale: 1, groups: [], bars: [] };
 const motion = {
   angle: 0,
   speed: 0,
@@ -35,7 +32,6 @@ const motion = {
   visible: true,
   last: 0,
 };
-let mic = null;
 
 // The bars move one slice toward the tip, and the new value enters at the hub.
 function feed(value) {
@@ -43,7 +39,7 @@ function feed(value) {
   motion.history.push(value);
 }
 
-// Says the word "moulin" into the sails: the same path as the microphone, with the recorded loudness.
+// Says the word "moulin" into the sails, with its recorded loudness.
 function speakTheWord() {
   motion.queue = [...VOICE];
 }
@@ -90,11 +86,8 @@ function build() {
   const hill = `M0 ${H} L0 ${r2(left)} C ${r2(W * 0.3)} ${r2(left - (left - ground) * 0.4)}, ${r2(hub[0] - 1.6 * R)} ${r2(ground + 4)}, ${r2(hub[0])} ${r2(ground)} S ${r2(W - 30)} ${r2(ground + 12)}, ${W} ${r2(ground + 22)} L${W} ${H} Z`;
 
   scene.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  scene.innerHTML = `<defs>
-    <radialGradient id="halo"><stop offset="0" stop-color="#FF3B30" stop-opacity="0.7"/><stop offset="1" stop-color="#FF3B30" stop-opacity="0"/></radialGradient>
-  </defs>
-  <g class="winds">${windSvg({ width: W, height: H, opacity: [0.18, 0.15, 0.13] })}</g>
-  <g transform="${at}">${millSvg({ id: 'hero', height, g: G, gap: 10, voice: motion.shown })}<circle class="halo" r="110" fill="url(#halo)"/></g>
+  scene.innerHTML = `<g class="winds">${windSvg({ width: W, height: H, opacity: [0.18, 0.15, 0.13] })}</g>
+  <g transform="${at}">${millSvg({ id: 'hero', height, g: G, gap: 10, voice: motion.shown })}</g>
   <path class="hill" d="${hill}"/>`;
 
   // The wordmark again, in the color of the field, where the white mill passes behind the letters.
@@ -110,7 +103,6 @@ function build() {
   Object.assign(view, { W, H, hub, scale: s });
   view.groups = [...scene.querySelectorAll('.sails'), ...ink.querySelectorAll('.sails')];
   view.bars = view.groups.map((g) => [...g.querySelectorAll('.bar')]);
-  view.halo = scene.querySelector('.halo');
   draw(true);
 }
 
@@ -127,17 +119,6 @@ function draw(bars) {
       });
     }
   }
-  // While the microphone listens, a red glow around the hub follows the loudness.
-  if (view.halo) view.halo.style.opacity = mic ? r2(Math.min(1, 0.2 + mic.level * 1.6)) : '';
-}
-
-function sampleMic() {
-  mic.analyser.getFloatTimeDomainData(mic.data);
-  let sum = 0;
-  for (const v of mic.data) sum += v * v;
-  const level = Math.min(1, Math.sqrt(sum / mic.data.length) * 7); // The same scale as the meter of the app.
-  mic.level = Math.max(level, mic.level * 0.86); // A fast rise and a slow fall.
-  return mic.level;
 }
 
 function frame(now) {
@@ -145,15 +126,12 @@ function frame(now) {
   const dt = motion.last ? Math.min(0.05, (now - motion.last) / 1000) : 0;
   motion.last = now;
 
-  const wind = mic ? sampleMic() : 0;
   if (now >= motion.nextStep) {
     motion.nextStep = now + STEP_MS;
-    if (mic) feed(wind);
-    else if (motion.queue.length) feed(motion.queue.shift());
+    if (motion.queue.length) feed(motion.queue.shift());
   }
 
-  const idle = reduced.matches ? 0 : IDLE;
-  const target = idle - wind * 640;
+  const target = reduced.matches ? 0 : IDLE;
   if (!motion.drag) {
     const rate = Math.abs(target) > Math.abs(motion.speed) ? 5 : 0.9; // The mill speeds up fast and slows down slowly.
     motion.speed += (target - motion.speed) * Math.min(1, dt * rate);
@@ -166,10 +144,10 @@ function frame(now) {
     if (Math.abs(next - motion.history[i]) > 0.002) moving = true;
     return next;
   });
-  draw(moving || mic);
+  draw(moving);
 
   // With reduced motion, the loop stops when nothing moves.
-  const still = reduced.matches && !mic && !motion.drag && !moving && !motion.queue.length && Math.abs(motion.speed) < 0.05;
+  const still = reduced.matches && !motion.drag && !moving && !motion.queue.length && Math.abs(motion.speed) < 0.05;
   if (still || !motion.visible || document.hidden) {
     motion.running = false;
     motion.last = 0;
@@ -231,64 +209,7 @@ scene.addEventListener('pointerup', release);
 scene.addEventListener('pointercancel', release);
 scene.addEventListener('pointerleave', () => scene.classList.remove('can-grab'));
 
-// ---------- The microphone: only the loudness, only in this page. ----------
-
-const LABELS = { off: 'Turn the sails with your voice', on: 'Stop listening' };
-const ERRORS = {
-  NotAllowedError: 'The browser did not allow the microphone.',
-  NotFoundError: 'This device has no microphone.',
-};
-
-async function startMic() {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-  const context = new AudioContext();
-  const analyser = context.createAnalyser();
-  analyser.fftSize = 1024;
-  context.createMediaStreamSource(stream).connect(analyser);
-  mic = { stream, context, analyser, data: new Float32Array(analyser.fftSize), level: 0 };
-}
-
-function stopMic() {
-  if (!mic) return;
-  mic.stream.getTracks().forEach((track) => track.stop());
-  mic.context.close();
-  mic = null;
-  speakTheWord();
-}
-
-function setListening(on, message = '') {
-  listen.setAttribute('aria-pressed', String(on));
-  listen.setAttribute('aria-label', on ? LABELS.on : LABELS.off);
-  listen.querySelector('span').textContent = on ? LABELS.on : LABELS.off;
-  note.textContent = message;
-}
-
-if (navigator.mediaDevices?.getUserMedia) {
-  listen.hidden = false;
-  listen.addEventListener('click', async () => {
-    if (mic) {
-      stopMic();
-      setListening(false);
-      wake();
-      return;
-    }
-    try {
-      await startMic();
-      setListening(true, 'Speak, or blow. The page measures only the loudness, and no audio leaves your browser.');
-      wake();
-    } catch (err) {
-      setListening(false, ERRORS[err.name] || 'The microphone did not start.');
-    }
-  });
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && mic) {
-    stopMic();
-    setListening(false);
-  }
-  wake();
-});
+document.addEventListener('visibilitychange', wake);
 
 // ---------- Install: one tab for each system, and a copy button for each command. ----------
 

@@ -52,6 +52,17 @@ async function maxVolumeDb(file, fromS, toS) {
   return match[1] === '-inf' ? -Infinity : Number(match[1]);
 }
 
+// Hold mode (macOS): pushes or releases a function key with a synthetic key event.
+// The event comes from a private event source: an event of the HID system state can get
+// a key-up from macOS at the next input of the user, because no physical key is down.
+const MAC_KEYCODES = { F1: 122, F2: 120, F3: 99, F4: 118, F5: 96, F6: 97, F7: 98, F8: 100, F9: 101, F10: 109, F11: 103, F12: 111, F13: 105, F14: 107, F15: 113, F16: 106, F17: 64, F18: 79, F19: 80, F20: 90 };
+async function pressKey(accelerator, down) {
+  const keycode = MAC_KEYCODES[accelerator];
+  if (process.platform !== 'darwin' || keycode === undefined) throw new Error(`The hold test needs macOS and a shortcut from F1 to F20 (not ${accelerator})`);
+  const script = `ObjC.import('CoreGraphics'); const src = $.CGEventSourceCreate($.kCGEventSourceStatePrivate); $.CGEventPost($.kCGHIDEventTap, $.CGEventCreateKeyboardEvent(src, ${keycode}, ${down}));`;
+  await exec('osascript', ['-l', 'JavaScript', '-e', script], { timeout: 10_000 });
+}
+
 // The trigger: a second Moulin process with --toggle, the same path as a system shortcut. Returns the run time of that process.
 async function toggleFromOutside() {
   const startedAt = Date.now();
@@ -59,7 +70,8 @@ async function toggleFromOutside() {
   return Date.now() - startedAt;
 }
 
-async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir, captureOverlay }) {
+// hold: null, or the hold mode ({ error, stop }): the test holds the key of the shortcut during the sample, then releases it.
+async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir, captureOverlay, hold }) {
   const startedAt = new Date().toISOString();
   const stamp = startedAt.replace(/[:.]/g, '-');
   const audioFile = path.join(outDir, `e2e-${stamp}.webm`);
@@ -83,13 +95,13 @@ async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir, 
     }
   });
   const report = {
-    test: 'One dictation: start and stop with "Moulin --toggle", upload, clipboard',
+    test: hold ? 'One dictation in hold mode: hold the key, release it, upload, clipboard' : 'One dictation: start and stop with "Moulin --toggle", upload, clipboard',
     startedAt,
     app: { name: app.getName(), version: app.getVersion(), packaged: app.isPackaged, executable: process.execPath },
     versions: { electron: process.versions.electron, chrome: process.versions.chrome, os: `${process.platform} ${process.getSystemVersion()}` },
     strategy: 'B: the app records the audio, and the hidden chatgpt.com page uploads it with fetch from an isolated world',
     hotkey: { accelerator: settings.hotkey, registered: hotkeyOk },
-    trigger: 'a second Moulin process with --toggle (the path of a system shortcut)',
+    trigger: hold ? `the key ${settings.hotkey}, held down during the sample, then released (synthetic key events)` : 'a second Moulin process with --toggle (the path of a system shortcut)',
     page,
   };
   try {
@@ -101,13 +113,16 @@ async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir, 
     const sampleS = await seconds(sample);
     report.sample = { file: path.basename(sample), seconds: sampleS };
 
+    if (hold?.error) throw new Error(`Hold mode: ${hold.error}`);
     const started = next(events, 'started', 15_000, 'micError');
-    report.toggleProcessMs = { start: await toggleFromOutside() };
+    if (hold) await pressKey(settings.hotkey, true);
+    else report.toggleProcessMs = { start: await toggleFromOutside() };
     await started;
     await delay((sampleS + TAIL_S) * 1000);
     const audioReady = next(events, 'audio', 10_000);
     const resultReady = next(events, 'result', 300_000);
-    report.toggleProcessMs.stop = await toggleFromOutside();
+    if (hold) await pressKey(settings.hotkey, false);
+    else report.toggleProcessMs.stop = await toggleFromOutside();
     const audio = await audioReady;
     fs.writeFileSync(audioFile, audio.audio);
     const result = await resultReady;
@@ -146,6 +161,7 @@ async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir, 
   report.pass = failures.length === 0;
   const file = path.join(outDir, `e2e-${stamp}.json`);
   fs.writeFileSync(file, `${JSON.stringify(report, null, 2)}\n`);
+  hold?.stop(); // app.exit skips will-quit: stop the key hook here, else it can call into a closing Node.
   console.log(`E2E ${report.pass ? 'PASS' : 'FAIL'}: ${file}`);
   for (const failure of failures) console.log(`- ${failure}`);
   app.exit(report.pass ? 0 : 1);

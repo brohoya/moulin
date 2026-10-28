@@ -41,6 +41,17 @@
       <button id="hotkey" class="key" type="button" aria-label="Change the shortcut"></button>
     </div>
     <p id="hotkey-error" class="error" hidden></p>
+    <div class="row">
+      <div class="text">
+        <div class="label">Mode</div>
+        <div id="mode-hint" class="hint"></div>
+      </div>
+      <div class="segmented" role="radiogroup" aria-label="Mode">
+        <button type="button" role="radio" data-mode="toggle" aria-checked="true">Toggle</button>
+        <button type="button" role="radio" data-mode="hold" aria-checked="false">Hold</button>
+      </div>
+    </div>
+    <p id="mode-error" class="error" hidden></p>
   </section>
 
   <h2>After a dictation</h2>
@@ -58,16 +69,12 @@
     </div>
   </section>
 
-  <h2>Microphone</h2>
-  <section>
-    <div class="row">
-      <label class="label" for="microphone">Input</label>
-      <select id="microphone"></select>
-    </div>
-  </section>
-
   <h2>General</h2>
   <section>
+    <div class="row">
+      <label class="label" for="microphone">Microphone</label>
+      <select id="microphone"></select>
+    </div>
     <label class="row">
       <div class="label">Start Moulin at login</div>
       <input id="openAtLogin" class="switch" type="checkbox">

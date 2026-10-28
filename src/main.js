@@ -20,7 +20,9 @@ const SAMPLE = option('sample') || path.join(ROOT, 'fixtures', 'fr-sample.wav');
 const OUT_DIR = option('out') || path.join(ROOT, 'artifacts');
 const ICON = path.join(ROOT, 'assets', 'icon.png');
 const MAX_RECORDING_MS = 5 * 60_000; // Uploads of more than 326 s are not tested.
-const DEFAULTS = { hotkey: 'F5', autoPaste: true, openAtLogin: true, microphoneId: '', showOverlay: true };
+const DEFAULTS = { hotkey: 'F5', mode: 'toggle', autoPaste: true, openAtLogin: true, microphoneId: '', showOverlay: true };
+// Hold mode: a press shorter than this cancels the dictation, so that no empty audio goes to ChatGPT.
+const SHORT_PRESS_MS = 300;
 
 if (MODE !== 'app') {
   // Test modes: the microphone plays the sample WAV one time (no loop), and no permission prompt shows.
@@ -52,6 +54,9 @@ let stopAt = 0;
 let maxTimer = null;
 let spinTimer = null;
 let hideTimer = null;
+let hook = null; // The key hook of the hold mode (uiohook-napi), while it runs.
+let holdError = null;
+let heldSince = null; // Hold mode: the time of the key-down, until the key-up.
 
 function loadSettings() {
   try {
@@ -69,7 +74,10 @@ function saveSettings() {
   fs.renameSync(`${file}.tmp`, file);
 }
 
-const readyText = () => (settings.hotkey ? `Ready. Press ${settings.hotkey} to dictate.` : 'Ready. Use the menu or your system shortcut to dictate.');
+const readyText = () => {
+  if (!settings.hotkey) return 'Ready. Use the menu or your system shortcut to dictate.';
+  return settings.mode === 'hold' ? `Ready. Hold ${settings.hotkey} to dictate.` : `Ready. Press ${settings.hotkey} to dictate.`;
+};
 
 // Tray images: black template images on macOS (the menu bar colors them), colored tiles on Windows and Linux.
 const images = new Map();
@@ -205,7 +213,8 @@ async function microphoneAllowed() {
   return false;
 }
 
-async function startRecording() {
+// hold: the key of the hold mode started the dictation. If the key is up again when the microphone opens, the press was short.
+async function startRecording({ hold = false } = {}) {
   if (state === 'recording' || state === 'transcribing') return;
   if (!signedIn) signedIn = (await chatgpt.start()).signedIn;
   if (!signedIn) {
@@ -222,6 +231,7 @@ async function startRecording() {
   pageOf(overlay)?.send('rec', { command: 'start', deviceId: settings.microphoneId });
   registerEscape(true);
   maxTimer = setTimeout(stopRecording, MAX_RECORDING_MS);
+  if (hold && heldSince === null) cancelRecording();
 }
 
 function stopRecording() {
@@ -312,12 +322,77 @@ async function transcribe() {
 function registerHotkey(accelerator = settings.hotkey) {
   if (!accelerator) return null;
   try {
-    if (globalShortcut.register(accelerator, toggle)) return null;
+    if (globalShortcut.register(accelerator, onShortcut)) return null;
     return WAYLAND
       ? `This desktop refuses the shortcut ${accelerator}. Add a system shortcut that runs Moulin with --toggle, and remove this one.`
       : `${accelerator} is in use by another app. Choose a different shortcut.`;
   } catch {
     return `${accelerator} is not a valid shortcut.`;
+  }
+}
+
+// The shortcut starts or stops a dictation (toggle). In hold mode, it starts the dictation, and the key-up stops it.
+function onShortcut() {
+  if (settings.mode !== 'hold' || !hook) return toggle();
+  if (heldSince !== null) return; // The key repeats while it stays down.
+  heldSince = Date.now();
+  startRecording({ hold: true });
+}
+
+// Electron gives no key-up event for a global shortcut, so the hold mode watches the keys with uiohook-napi.
+// The hook runs only in hold mode, and it uses only the key of the shortcut.
+const HOOK_KEYS = {
+  Up: 'ArrowUp', Down: 'ArrowDown', Left: 'ArrowLeft', Right: 'ArrowRight', '-': 'Minus', '=': 'Equal', '[': 'BracketLeft',
+  ']': 'BracketRight', '\\': 'Backslash', ';': 'Semicolon', "'": 'Quote', ',': 'Comma', '.': 'Period', '/': 'Slash', '`': 'Backquote',
+};
+
+function hookKeycode(accelerator) {
+  const key = (accelerator || '').split('+').pop();
+  const name = /^num\d$/.test(key) ? `Numpad${key.slice(3)}` : HOOK_KEYS[key] || key;
+  return hook?.UiohookKey[name] ?? null;
+}
+
+function onKeyUp(event) {
+  if (heldSince === null || event.keycode !== hookKeycode(settings.hotkey)) return;
+  const short = Date.now() - heldSince < SHORT_PRESS_MS;
+  heldSince = null;
+  if (state !== 'recording') return; // If the microphone is not open yet, startRecording sees that the key is up.
+  if (short) cancelRecording();
+  else stopRecording();
+}
+
+// Returns null, or the reason why the hold mode cannot work.
+function startHook() {
+  if (hook) return null;
+  if (WAYLAND) return 'Hold does not work on Wayland. Choose Toggle.';
+  if (IS_MAC && !systemPreferences.isTrustedAccessibilityClient(false)) {
+    systemPreferences.isTrustedAccessibilityClient(true);
+    return 'Hold needs the Accessibility permission. Allow Moulin in System Settings > Privacy & Security > Accessibility, then choose Hold again.';
+  }
+  try {
+    const { uIOhook, UiohookKey } = require('uiohook-napi');
+    uIOhook.on('keyup', onKeyUp);
+    uIOhook.start();
+    hook = { uIOhook, UiohookKey };
+    return null;
+  } catch (err) {
+    return `Hold does not work on this computer (${err.message}). Choose Toggle.`;
+  }
+}
+
+function stopHook() {
+  if (!hook) return;
+  hook.uIOhook.removeListener('keyup', onKeyUp);
+  hook.uIOhook.stop();
+  hook = null;
+  heldSince = null;
+}
+
+function applyMode() {
+  if (settings.mode === 'hold') holdError = startHook();
+  else {
+    stopHook();
+    holdError = null;
   }
 }
 
@@ -362,6 +437,7 @@ function snapshot() {
     status,
     signedIn,
     hotkeyError,
+    holdError,
     version: app.getVersion(),
     platform: process.platform,
     accessibility: IS_MAC ? systemPreferences.isTrustedAccessibilityClient(false) : true,
@@ -437,6 +513,11 @@ function listenToPages() {
     if (!fromSettings(e) || !patch || typeof patch !== 'object') return null;
     if (typeof patch.hotkey === 'string' && patch.hotkey !== settings.hotkey) hotkeyError = changeHotkey(patch.hotkey);
     for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) if (typeof patch[key] === 'boolean') settings[key] = patch[key];
+    // A second click on Hold tries again, for example after the user allows Accessibility.
+    if (patch.mode === 'toggle' || patch.mode === 'hold') {
+      settings.mode = patch.mode;
+      applyMode();
+    }
     if (typeof patch.microphoneId === 'string') settings.microphoneId = patch.microphoneId;
     saveSettings();
     applyLoginItem();
@@ -490,6 +571,8 @@ async function main() {
   await createOverlay();
   chatgpt.create({ icon: ICON });
   hotkeyError = registerHotkey();
+  if (MODE === 'e2e' && process.argv.includes('--hold')) settings.mode = 'hold'; // Not saved: the test only.
+  applyMode();
   applyLoginItem();
   const page = await chatgpt.start();
   signedIn = page.signedIn;
@@ -513,6 +596,8 @@ async function main() {
   if (MODE === 'e2e') {
     require('./e2e').run({
       events, settings, chatgpt, page, hotkeyOk: !hotkeyError, sample: SAMPLE, outDir: OUT_DIR, captureOverlay: () => overlay.webContents.capturePage(),
+      // Hold mode: the test pushes and releases the key of the shortcut with synthetic key events.
+      hold: settings.mode === 'hold' ? { error: holdError, stop: stopHook } : null,
     });
   }
 }
@@ -524,7 +609,10 @@ if (!app.requestSingleInstanceLock({ toggle: TOGGLE })) {
 } else {
   app.on('second-instance', (event, argv, workingDirectory, request) => (request?.toggle ? toggle() : openSettings()));
   app.on('window-all-closed', () => {}); // Moulin stays in the tray.
-  app.on('will-quit', () => globalShortcut.unregisterAll());
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+    stopHook();
+  });
   app.whenReady().then(main).catch((err) => {
     console.error(err);
     app.exit(1);
