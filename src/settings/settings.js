@@ -31,7 +31,7 @@ function render(snapshot) {
   if (!snapshot) return;
   current = snapshot;
   const { settings } = snapshot;
-  $('version').textContent = `· v${snapshot.version}`;
+  $('version').textContent = `Version ${snapshot.version}`;
   $('status').textContent = snapshot.status;
   const kind = !snapshot.signedIn ? 'warn' : snapshot.state === 'error' ? 'error' : 'ok';
   $('badge').dataset.kind = kind;

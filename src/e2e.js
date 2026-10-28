@@ -59,7 +59,7 @@ async function toggleFromOutside() {
   return Date.now() - startedAt;
 }
 
-async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir }) {
+async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir, captureOverlay }) {
   const startedAt = new Date().toISOString();
   const stamp = startedAt.replace(/[:.]/g, '-');
   const audioFile = path.join(outDir, `e2e-${stamp}.webm`);
@@ -67,8 +67,21 @@ async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir }
   const failures = [];
   const trayStates = [];
   const overlayStates = [];
+  const pictures = {}; // A picture of the pop-up in each state, for a visual check of the theme.
   events.on('state', (s) => trayStates.push(s.state));
   events.on('overlay', (o) => overlayStates.push(o));
+  events.on('overlay', async ({ view, visible }) => {
+    if (!visible || !['recording', 'transcribing', 'done'].includes(view) || pictures[view]) return;
+    pictures[view] = 'pending';
+    await delay(view === 'recording' ? 1500 : 350); // After the change of width, and with sound in the bars.
+    try {
+      const file = path.join(outDir, `e2e-${stamp}-pill-${view}.png`);
+      fs.writeFileSync(file, (await captureOverlay()).toPNG());
+      pictures[view] = path.basename(file);
+    } catch (err) {
+      pictures[view] = `not taken: ${err.message}`;
+    }
+  });
   const report = {
     test: 'One dictation: start and stop with "Moulin --toggle", upload, clipboard',
     startedAt,
@@ -117,6 +130,8 @@ async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir }
     report.clipboard = { matchesTranscript: result.ok && clipboardText === result.text };
     report.trayStates = trayStates;
     report.overlay = overlayStates;
+    for (let i = 0; i < 30 && Object.values(pictures).includes('pending'); i++) await delay(100);
+    report.pictures = pictures;
     const shown = (view) => overlayStates.some((o) => o.view === view && o.visible);
     if (settings.showOverlay && !['recording', 'transcribing', 'done'].every(shown)) failures.push('The pop-up did not show the recording, transcribing, and done states');
 

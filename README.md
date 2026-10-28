@@ -1,6 +1,16 @@
-# Moulin
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/media/hero-night.svg">
+    <img src="docs/media/hero-day.svg" alt="Moulin">
+  </picture>
+</h1>
 
-Dictation from the menu bar with the speech-to-text of your ChatGPT subscription. The name comes from "moulin à paroles": a person who talks all the time.
+<p align="center">Dictation from the menu bar with the speech-to-text of your ChatGPT subscription.<br>
+<a href="https://brohoya.github.io/moulin/">Website</a> &nbsp; <a href="#install">Install</a> &nbsp; <a href="#how-it-works">How it works</a></p>
+
+<p align="center"><img src="docs/media/demo.svg" alt="A note on a Mac. The user pushes F5, a dark pop-up shows the recording, the user pushes F5 again, and the sentence appears at the cursor."></p>
+
+The name comes from "moulin à paroles": a person who talks all the time.
 
 1. Push F5 and speak. A small pop-up shows the recording.
 2. Push F5 again. Moulin sends the audio to ChatGPT from its own hidden browser.
@@ -52,7 +62,7 @@ A dictation stops after 5 minutes, because longer uploads are not tested.
 3. Upload: at the stop, the main process gives the audio to the chatgpt.com page with `executeJavaScriptInIsolatedWorld`. The code in the isolated world reads the access token from `GET /api/auth/session` and sends `POST /backend-api/transcribe` with `fetch`. The form fields and the headers are the same as the request of the dictation button. The token stays in the page.
 4. Completion: the resolved `fetch` is the completion signal. Moulin writes the `text` field to the clipboard, then sends Cmd+V (macOS) or Ctrl+V (Windows, Linux). Moulin never reads the message box of ChatGPT.
 
-Code: [src/main.js](src/main.js) (tray, shortcut, flow, settings), [src/chatgpt.js](src/chatgpt.js) (hidden window, sign-in, upload), [src/overlay/](src/overlay/) (pop-up and recorder), [src/settings/](src/settings/) (settings window), [src/paste.js](src/paste.js) (paste on each platform).
+Code: [src/main.js](src/main.js) (tray, shortcut, flow, settings), [src/chatgpt.js](src/chatgpt.js) (hidden window, sign-in, upload), [src/overlay/](src/overlay/) (pop-up and recorder), [src/settings/](src/settings/) (settings window), [src/paste.js](src/paste.js) (paste on each platform), [docs/](docs/) (website, and the shapes of the mark).
 
 Data: Moulin keeps `settings.json` and the ChatGPT session (`Partitions/chatgpt`) in `~/Library/Application Support/Moulin` (macOS), `%APPDATA%\Moulin` (Windows), or `~/.config/Moulin` (Linux). The cookies are not encrypted. Only your user account can read the files.
 
@@ -69,10 +79,26 @@ The packaged app turns off the Electron fuses `RunAsNode`, `NODE_OPTIONS`, and t
 | `npm run reinstall` | macOS: builds the app, signs it with the local certificate, replaces `~/Applications/Moulin.app`, and starts it. If the signature identity changed, it removes the old permissions, so that macOS asks again with clean entries. |
 | `npm run signing:setup` | macOS, one time: creates the local signing certificate in `~/Library/Keychains/moulin-signing.keychain-db`. The login keychain keeps only the password of that keychain. |
 | `npm run capture` | Shows the ChatGPT window. Do one dictation with the button of the page. It writes `artifacts/capture-<time>.json` with names and shapes only. |
-| `npm run icons` | Makes the icons from the shapes in [scripts/make-icons.mjs](scripts/make-icons.mjs). |
+| `npm run icons` | Makes all the images from the shapes in [docs/mill.js](docs/mill.js): the app icon, the tray images, the header of the settings window, and the images of the website and this README. |
 | `npm run sample` | Makes `fixtures/fr-sample.wav` (48 kHz, mono, 16-bit) from `fixtures/fr-sample.txt` with `say` and ffmpeg. |
 
 The E2E test does one full dictation: start, stop, upload, clipboard. A second Moulin process with `--toggle` starts and stops the dictation, the same path as a system shortcut. On macOS, `npm run e2e` starts the app with `open`, so that macOS does not put the menu bar icon in the group of the terminal app. The microphone is the sample WAV (Chromium fake device, `%noloop`). The test never pastes. It writes `artifacts/e2e-<time>.json` and the recording `artifacts/e2e-<time>.webm`. It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, the tray states, the pop-up states, and the silence after the end of the sample. It needs a signed-in session and ffmpeg, and it replaces the clipboard content. The test modes turn off the sandbox of the Chromium audio service (`--disable-features=AudioServiceSandbox`), because that sandbox blocks the read of the WAV file. The normal app keeps the sandbox.
+
+## Website and images
+
+The folder [docs/](docs/) is the website: one page, with no build step and no request to another site. The fonts are in [docs/fonts/](docs/fonts/) (Spectral and EB Garamond, SIL Open Font License).
+
+To publish it with GitHub Pages:
+
+1. Push the repository to GitHub.
+2. In Settings > Pages, set "Deploy from a branch", the branch `main`, and the folder `/docs`.
+3. In Settings > General > Social preview, upload [docs/media/social.png](docs/media/social.png).
+
+The page is then at https://brohoya.github.io/moulin/. Any static host can serve the folder `docs` without a change. To see the page on this computer, run `python3 -m http.server -d docs 8000` and open http://localhost:8000. A page that opens from the disk (`file://`) cannot load its scripts.
+
+The mark is a windmill whose sails hold a sound. The seven bars in each sail are the loudness of the word "moulin", spoken by the macOS voice Thomas, in seven equal slices from the tip of the sail to the hub. The red hub is the recording light. The wordmark is Spectral Italic, as outlines in [docs/wordmark.js](docs/wordmark.js). Run `npm run icons` after a change of [docs/mill.js](docs/mill.js) or [scripts/media.mjs](scripts/media.mjs).
+
+On the website, the sails turn in a light wind, and a drag with the mouse turns them. "Turn the sails with your voice" asks for the microphone: the page measures only the loudness, and no audio leaves the browser.
 
 ## Results (October 2026)
 

@@ -5,14 +5,30 @@ const pill = document.getElementById('pill');
 const label = document.getElementById('text');
 const time = document.getElementById('time');
 const bars = [...document.querySelectorAll('#bars i')];
+const sails = [...document.querySelectorAll('.mill .sails')];
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 let recorder = null;
 let starting = false;
 let stopAsked = null; // 'stop' or 'cancel' when the command comes before the microphone is open.
 let meter = null;
 
+// Between two visible states, the pill goes from its old width to its new width.
 api.onState(({ state, text }) => {
+  const shown = pill.dataset.state !== 'hidden' && state !== 'hidden' && !reduced.matches;
+  const from = pill.getBoundingClientRect().width;
+  pill.style.width = '';
   pill.dataset.state = state;
   label.textContent = text || '';
+  if (!shown) return;
+  const to = pill.getBoundingClientRect().width;
+  if (Math.abs(to - from) < 1) return;
+  pill.style.width = `${from}px`;
+  pill.getBoundingClientRect(); // Applies the old width before the transition starts.
+  pill.style.width = `${to}px`;
+});
+
+pill.addEventListener('transitionend', (event) => {
+  if (event.propertyName === 'width') pill.style.width = '';
 });
 
 pill.addEventListener('click', () => api.clicked());
@@ -38,6 +54,8 @@ function startMeter(stream, startedAt) {
   const samples = new Float32Array(analyser.fftSize);
   const levels = bars.map(() => 0);
   let last = 0;
+  let previous = 0;
+  let angle = 0;
   const frame = (now) => {
     if (!meter) return;
     if (now - last > 70) {
@@ -50,6 +68,12 @@ function startMeter(stream, startedAt) {
       const s = Math.floor((performance.now() - startedAt) / 1000);
       time.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     }
+    // The voice is the wind: a louder voice turns the sails faster, counterclockwise.
+    if (previous && !reduced.matches) {
+      angle -= (20 + levels[levels.length - 1] * 240) * ((now - previous) / 1000);
+      sails.forEach((group) => { group.style.transform = `rotate(${angle.toFixed(1)}deg)`; });
+    }
+    previous = now;
     meter.frame = requestAnimationFrame(frame);
   };
   time.textContent = '0:00';
@@ -62,6 +86,7 @@ function stopMeter() {
   meter.context.close();
   meter = null;
   bars.forEach((bar) => { bar.style.transform = ''; });
+  sails.forEach((group) => { group.style.transform = ''; });
 }
 
 api.onCommand(async ({ command, deviceId }) => {

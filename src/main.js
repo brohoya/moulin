@@ -498,7 +498,9 @@ async function main() {
   }
   if (MODE === 'app' && TOGGLE) toggle(); // A system shortcut started Moulin: start the dictation now.
   if (MODE === 'e2e') {
-    require('./e2e').run({ events, settings, chatgpt, page, hotkeyOk: !hotkeyError, sample: SAMPLE, outDir: OUT_DIR });
+    require('./e2e').run({
+      events, settings, chatgpt, page, hotkeyOk: !hotkeyError, sample: SAMPLE, outDir: OUT_DIR, captureOverlay: () => overlay.webContents.capturePage(),
+    });
   }
 }
 
