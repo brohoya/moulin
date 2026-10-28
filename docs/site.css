@@ -3,8 +3,6 @@
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
-/* Only the letters of the phonetic transcription. */
-@font-face { font-family: "EB Garamond IPA"; src: url("fonts/EBGaramond-IPA.woff2") format("woff2"); font-display: swap; }
 
 :root {
   color-scheme: light dark;
@@ -63,18 +61,6 @@ p { margin: 0; text-wrap: pretty; }
 
 code { font-family: var(--mono); font-size: 0.86em; }
 
-kbd {
-  display: inline-block;
-  min-width: 1.9em;
-  padding: 0.18em 0.42em 0.22em;
-  border: 1px solid rgb(255 255 255 / 0.35);
-  border-bottom-width: 2px;
-  border-radius: 7px;
-  font: 600 0.74em/1 var(--ui);
-  text-align: center;
-  vertical-align: 0.1em;
-}
-
 /* ---------- The poster: the mill behind, the words in front. ---------- */
 
 .hero {
@@ -82,7 +68,6 @@ kbd {
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   min-height: 100svh;
   overflow: hidden;
 }
@@ -160,7 +145,8 @@ kbd {
   position: relative;
   z-index: 1;
   width: min(100%, calc(620px + 2 * var(--gutter)));
-  padding: 92px var(--gutter) 44px;
+  margin-block: auto;
+  padding: 92px var(--gutter) 40px;
 }
 
 .wordmark { margin: 0; line-height: 0; }
@@ -168,60 +154,56 @@ kbd {
 .word-face { fill: #fff; }
 .word-dot { fill: var(--signal); }
 
-.pun { margin-top: 14px; font-size: 16.5px; color: var(--text-2); }
-.pun .ipa { font-family: "EB Garamond IPA", var(--serif); font-size: 1.06em; color: var(--text-3); }
+.definition { margin-top: 14px; font-size: 17px; color: var(--text-2); }
 
-.lede {
+.tagline {
   max-width: 21em;
   margin-top: clamp(26px, 4vh, 40px);
-  font-size: clamp(23px, 2vw, 28px);
-  line-height: 1.3;
+  font-size: clamp(24px, 2.1vw, 30px);
+  line-height: 1.25;
 }
 
-.why { max-width: 31em; margin-top: 16px; color: var(--text-2); }
+.why { max-width: 30em; margin-top: 14px; color: var(--text-2); }
 
-.caution { max-width: 36em; margin-top: 14px; font-size: 15px; line-height: 1.5; color: var(--text-3); }
-.caution strong { font-weight: 500; color: var(--text); }
+.downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: clamp(26px, 4vh, 36px);
+}
 
-/* ---------- Install: one tab for each system. ---------- */
-
-.install { max-width: 620px; margin-top: clamp(26px, 4vh, 36px); }
-
-.tabs {
+/* The button of the visitor's system is white. The two others are outlines. */
+.download {
   display: inline-flex;
-  gap: 2px;
-  padding: 4px;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px solid rgb(255 255 255 / 0.45);
   border-radius: 999px;
-  background: var(--well);
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
 }
 
-.tab {
-  padding: 8px 18px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-2);
-  font: 500 15px/1 var(--serif);
-  cursor: pointer;
-}
+.download svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-.tab:hover { color: #fff; }
-.tab[aria-selected="true"] { background: #fff; color: var(--green); }
-
-.panel { margin-top: 14px; }
-.panel p { margin-top: 10px; font-size: 15px; line-height: 1.5; color: var(--text-3); }
-.panel p a { color: var(--text); }
-html:not(.js) .tabs { display: none; }
-html:not(.js) .panel::before { content: attr(data-name); display: block; margin: 18px 0 8px; font-weight: 500; }
+.download:hover { border-color: #fff; text-decoration: none; }
+.download.primary { border-color: #fff; background: #fff; color: var(--green); }
+.download.primary:hover { background: #E6ECE4; }
 
 .command {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 6px 6px 16px;
+  max-width: 620px;
+  margin-top: 12px;
+  padding: 6px 6px 6px 14px;
   border-radius: 14px;
   background: var(--well);
 }
+
+.command .prompt { font: 13.5px/2 var(--mono); color: var(--text-3); }
 
 .command code {
   flex: 1;
@@ -245,28 +227,25 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
 
 .command .copy:hover { background: rgb(255 255 255 / 0.2); }
 
-.download {
-  display: inline-flex;
-  align-items: center;
-  min-height: 46px;
-  padding: 0 22px;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--green);
-  font-weight: 500;
-  text-decoration: none;
+/* The caution and the credits, at the bottom of the page. */
+.fine {
+  position: relative;
+  z-index: 1;
+  max-width: calc(620px + 2 * var(--gutter));
+  padding: 0 var(--gutter) 26px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-3);
 }
 
-.download:hover { background: #E6ECE4; }
-
-.then { margin-top: 18px; font-size: 16px; color: var(--text-2); }
-
-.credits { margin-top: clamp(34px, 6vh, 56px); font-size: 14px; color: var(--text-3); }
+.fine p + p { margin-top: 6px; }
+.fine strong { font-weight: 500; color: var(--text-2); }
 
 /* ---------- The stacked page: the mill above, the words below. Keep this query equal to "stacked" in site.js. ---------- */
 
 @media (max-width: 979px), (max-aspect-ratio: 5/4) {
-  .hero { justify-content: flex-end; padding-top: clamp(250px, 44svh, 420px); } /* The room of the mill. */
+  .hero { padding-top: clamp(250px, 44svh, 420px); } /* The room of the mill. */
+  .words { margin-bottom: 0; }
   .words { width: 100%; max-width: calc(640px + 2 * var(--gutter)); padding-top: 0; }
   .wordmark svg { width: min(100%, 460px); }
 }
@@ -276,7 +255,8 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
   .listen span { display: none; }
   .listen { padding: 0 10px; }
   .listen-note { left: var(--gutter); text-align: left; }
-  .tab { padding: 8px 14px; }
+  .downloads { gap: 8px; }
+  .download { gap: 7px; padding: 0 14px; font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

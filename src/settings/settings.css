@@ -51,7 +51,7 @@ header {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 38px 24px 8px;
+  padding: 38px 24px 4px;
 }
 
 .drag { -webkit-app-region: drag; }
@@ -98,12 +98,12 @@ h1 svg { height: 25px; width: auto; }
 .badge[data-kind="warn"]::before { background: var(--warn); }
 .badge[data-kind="error"]::before { background: var(--error); }
 
-main { padding: 6px 24px 20px; }
+main { padding: 6px 24px 14px; }
 
 .status { margin: 0 4px 4px; color: var(--muted); min-height: 1.4em; }
 
 h2 {
-  margin: 16px 4px 6px;
+  margin: 11px 4px 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
@@ -208,7 +208,7 @@ select { max-width: 260px; }
 .switch:checked::after { transform: translateX(16px); }
 
 .note {
-  margin: 18px 0 0;
+  margin: 14px 0 0;
   padding: 10px 14px;
   border-radius: 10px;
   background: var(--caution);

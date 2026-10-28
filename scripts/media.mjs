@@ -52,9 +52,11 @@ const T = 12; // seconds for one loop
 const pct = (t) => `${r2((t / T) * 100)}%`;
 
 // Keyframes that show an element between the times of each window, with a fade at each end.
+// A window must be longer than the fade: two keyframes at the same time make the browser fade the element at the wrong time.
 function shown(name, windows, fade = 0.15) {
   const frames = [`0% { opacity: 0; }`];
   for (const [a, b] of windows) {
+    if (b - a <= fade) throw new Error(`The window ${a}-${b} of ${name} is not longer than the fade (${fade} s).`);
     frames.push(`${pct(Math.max(0, a - 0.001))} { opacity: 0; }`, `${pct(a + fade)} { opacity: 1; }`);
     if (b < T) frames.push(`${pct(b)} { opacity: 1; }`, `${pct(Math.min(T, b + fade))} { opacity: 0; }`);
   }
@@ -92,7 +94,8 @@ export function demoSvg() {
     const dur = r2(0.42 + ((i * 37) % 11) / 18);
     return `<rect class="bar" x="${x}" y="${pillY - 13}" width="4.5" height="26" rx="2.25" style="animation-duration:${dur}s;animation-delay:${r2(-i * 0.13)}s"/>`;
   }).join('');
-  const times = [0, 1, 2, 3, 4].map((s) => `<text class="tick t${s}" x="${cx + 74}" y="${pillY + 5.5}">0:0${s}</text>`).join('');
+  // One label for each second of the recording (STOP - START = 4 s): 0:00 to 0:03.
+  const times = [0, 1, 2, 3].map((s) => `<text class="tick t${s}" x="${cx + 74}" y="${pillY + 5.5}">0:0${s}</text>`).join('');
   const recording = pill({
     cx, cy: pillY, width: 252, cls: 'rec',
     body: () => glyphAt({ x: cx - 112, y: pillY - 15, size: 30, color: '#FF453A', id: 'pill-rec', cls: 'spin-slow' }) + bars + times,
@@ -138,7 +141,7 @@ export function demoSvg() {
   .key-b .cap { animation-name: press-b; }
   .pasted { animation-name: pasted; } .flash { animation-name: flash; }
   .caret0 { animation-name: caret0; }
-  .t0 { animation-name: t0; } .t1 { animation-name: t1; } .t2 { animation-name: t2; } .t3 { animation-name: t3; } .t4 { animation-name: t4; }
+  .t0 { animation-name: t0; } .t1 { animation-name: t1; } .t2 { animation-name: t2; } .t3 { animation-name: t3; }
   @keyframes turn { to { transform: rotate(-360deg); } }
   @keyframes talk { 0% { transform: scaleY(0.16); } 35% { transform: scaleY(0.7); } 60% { transform: scaleY(0.38); } 100% { transform: scaleY(0.95); } }
   @keyframes blink { 50% { fill-opacity: 0; } }
@@ -156,7 +159,7 @@ export function demoSvg() {
   ${shown('pasted', [[PASTE, RESET]], 0.08)}
   @keyframes flash { 0%, ${pct(PASTE - 0.01)} { opacity: 0; } ${pct(PASTE + 0.05)} { opacity: 1; } ${pct(PASTE + 1.1)}, 100% { opacity: 0; } }
   ${shown('caret0', [[0, PASTE], [RESET + 0.2, T]], 0.01)}
-  ${[0, 1, 2, 3, 4].map((s) => shown(`t${s}`, [[START + s, s === 4 ? STOP : START + s + 1]], 0.01)).join('\n  ')}
+  ${[0, 1, 2, 3].map((s) => shown(`t${s}`, [[START + s, START + s + 1]], 0.01)).join('\n  ')}
   .rec, .busy, .menu-rec, .menu-busy, .key, .caret0, .flash, .tick { opacity: 0; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>

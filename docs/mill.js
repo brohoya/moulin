@@ -135,14 +135,19 @@ export function iconSvg({ angle = 45, flat = false, square = false } = {}) {
 // The small mill for the tray and the pop-up, in a 32 x 32 grid. The hub is at (16, 12.2).
 // Both "sails" groups (the visible sails and the gap that they cut in the tower) must turn together.
 export function glyphInner({ id = 'glyph', angle = 45, color = '#000' } = {}) {
-  const sail = '<rect x="-1" y="-11.4" width="2" height="10.4" rx="1"/>'
-    + '<path fill-rule="evenodd" d="M0 -11.4 H5.4 V-4.2 H0 Z M1.2 -9.8 V-5.8 H3.8 V-9.8 Z"/>';
-  const sails = [0, 90, 180, 270].map((a) => `<g transform="translate(16 12.2) rotate(${r2(angle + a)})">${sail}</g>`).join('');
+  const spar = '<rect x="-1" y="-11.4" width="2" height="10.4" rx="1"/>';
+  const sail = `${spar}<path fill-rule="evenodd" d="M0 -11.4 H5.4 V-4.2 H0 Z M1.2 -9.8 V-5.8 H3.8 V-9.8 Z"/>`;
+  // The gap uses full sails, without the hole of the frame: else the tower shows through the hole while the sails turn.
+  const full = `${spar}<rect y="-11.4" width="5.4" height="7.2"/>`;
+  const turn = (shape) => [0, 90, 180, 270].map((a) => `<g transform="translate(16 12.2) rotate(${r2(angle + a)})">${shape}</g>`).join('');
+  const sails = turn(sail);
   return `<defs><mask id="${id}-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32"><rect width="32" height="32" fill="#fff"/>`
-    + `<g class="sails" fill="#000" stroke="#000" stroke-width="2.4" stroke-linejoin="round">${sails}</g></mask></defs>`
+    + `<g class="sails" fill="#000" stroke="#000" stroke-width="2.4" stroke-linejoin="round">${turn(full)}</g>`
+    // No gap near the hub: the turning gaps would cut small, still pieces out of the cap and the top of the tower.
+    + '<circle cx="16" cy="12.2" r="4.6" fill="#fff"/></mask></defs>'
     + `<g fill="${color}"><g mask="url(#${id}-gap)">`
     + '<path fill-rule="evenodd" d="M13.5 14.2 H18.5 L21.3 29.6 H10.7 Z M14.75 29.6 V26.4 A1.25 1.25 0 0 1 17.25 26.4 V29.6 Z"/>'
-    + '<path d="M12.4 15.2 C 12.4 10.6, 19.6 10.6, 19.6 15.2 Z"/></g>'
+    + '<path d="M12.9 15.2 C 12.9 10.8, 19.1 10.8, 19.1 15.2 Z"/></g>'
     + `<g class="sails">${sails}</g><circle cx="16" cy="12.2" r="1.9"/></g>`;
 }
 
