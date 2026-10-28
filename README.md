@@ -2,8 +2,6 @@
 
 ChatGPT has the best multilingual speech-to-text models that I have tested, so pay their subscription if you want to use this tool (please OpenAI, don't sue me).
 
-<p align="center"><img src="docs/media/demo.svg" alt="A note on a Mac. The user pushes F5, a dark pop-up shows the recording, the user pushes F5 again, and the sentence appears at the cursor."></p>
-
 ## Install
 
 On macOS and Linux, run this command in a terminal. It installs Moulin and starts it. Run it again to update.
@@ -22,7 +20,7 @@ Moulin is tested on macOS. The Windows and Linux versions are new.
 2. Allow the microphone. On macOS, also allow Moulin in System Settings &gt; Privacy &amp; Security &gt; Accessibility, so that it can paste.
 3. Push F5 and speak. Push F5 again: the text appears at the cursor, and it stays in the clipboard.
 
-Push Esc to cancel a dictation. The windmill in the menu bar is red while Moulin records, and its sails turn while ChatGPT writes the text. Its menu keeps your last five texts and opens the settings, where you can change the key.
+<p align="center"><img src="docs/media/demo.svg" alt="A note on a Mac. The user pushes F5, a dark pop-up shows the recording, the user pushes F5 again, and the sentence appears at the cursor."></p>
 
 ## Help
 
