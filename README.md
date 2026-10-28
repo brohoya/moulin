@@ -33,7 +33,7 @@ Moulin is tested on macOS. The Windows and Linux versions are new.
   open "karabiner://karabiner/assets/complex_modifications/import?url=https%3A%2F%2Fbrohoya.github.io%2Fmoulin%2Fkarabiner.json"
   ```
 
-In Karabiner-Elements, click Import, then Enable. Then click the shortcut in the Moulin settings and push the key: the settings show F13.
+  In Karabiner-Elements, click Import, then Enable. Then click the shortcut in the Moulin settings and push the key: the settings show F13.
 - Linux: the AppImage needs `libfuse2`. On Ubuntu 24.04, start it with `--no-sandbox`. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland). On a GNOME desktop other than Ubuntu, install the "AppIndicator and KStatusNotifierItem Support" extension to see the windmill.
 
 ## Terms of Use and risk
