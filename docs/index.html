@@ -3,133 +3,76 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Moulin: push a key, speak, and the text is at your cursor</title>
-<meta name="description" content="Moulin is a dictation app for the menu bar. Push F5, speak, and push F5 again. Moulin pastes the text at your cursor, with the speech-to-text of your ChatGPT subscription.">
+<title>Moulin: push a key, talk, and the text is at your cursor</title>
+<meta name="description" content="Moulin is a dictation app for macOS, Windows, and Linux. Push F5, talk, and push F5 again. Moulin types what you said with the speech-to-text of your ChatGPT account.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#2643DC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#070B24" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#23493B">
 <link rel="icon" href="media/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="media/apple-touch-icon.png">
 <link rel="preload" href="fonts/Spectral-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/Spectral-Medium.woff2" as="font" type="font/woff2" crossorigin>
 <meta property="og:type" content="website">
 <meta property="og:title" content="Moulin">
-<meta property="og:description" content="Push a key, speak, and the text is at your cursor.">
+<meta property="og:description" content="Push a key, talk, and the text is at your cursor.">
 <meta property="og:url" content="https://brohoya.github.io/moulin/">
 <meta property="og:image" content="https://brohoya.github.io/moulin/media/social.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
-<meta property="og:image:alt" content="The word moulin next to a white windmill on a blue sky">
+<meta property="og:image:alt" content="The word moulin next to a white windmill on a green field">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="site.css">
 <script>document.documentElement.classList.add('js');</script>
 <script type="module" src="site.js"></script>
 </head>
 <body>
-
-<header class="hero">
+<main class="hero">
   <svg class="scene" aria-hidden="true" focusable="false"></svg>
-  <nav class="nav" aria-label="Main">
-    <a href="#install">Install</a>
+
+  <nav class="nav" aria-label="Links">
+    <button class="listen" id="listen" type="button" aria-pressed="false" aria-label="Turn the sails with your voice" hidden>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg>
+      <span>Turn the sails with your voice</span>
+    </button>
     <a href="https://github.com/brohoya/moulin">GitHub</a>
   </nav>
-  <div class="hero-copy">
-    <h1 class="wordmark">
-      <svg viewBox="30 -756 2837 772" role="img" aria-label="Moulin"><path class="word-face" d="M119 0L43 0L112-389L34-424L34-430L176-460L179-460L179-355L183-355Q218-394 243-417Q268-440 292-450Q316-460 348-460L348-460Q385-460 409-432Q433-404 435-355L435-355L440-355Q475-394 500-417Q525-440 549-450Q573-460 605-460L605-460Q650-460 675-420Q700-380 688-312L688-312L653-119Q648-89 651.5-76Q655-63 668-63L668-63Q685-63 705-81.5Q725-100 743-138L743-138L756-132Q727-57 693.5-23.5Q660 10 625 10L625 10Q590 10 577-17Q564-44 572-89L572-89L611-309Q617-344 604.5-371.5Q592-399 552-399L552-399Q530-399 508.5-384.5Q487-370 467-349.5Q447-329 431-311L431-311L375 0L299 0L354-309Q360-344 347.5-371.5Q335-399 295-399L295-399Q273-399 251-384Q229-369 208.5-348.5Q188-328 172-309L172-309L119 0ZM993 10L993 10Q906 10 864.5-44.5Q823-99 823-184L823-184Q823-231 840-279.5Q857-328 889-369Q921-410 965-435Q1009-460 1062-460L1062-460Q1149-460 1190.5-406Q1232-352 1232-266L1232-266Q1232-221 1215.5-172.5Q1199-124 1167.5-82.5Q1136-41 1092-15.5Q1048 10 993 10ZM1004-28L1004-28Q1048-28 1079.5-61.5Q1111-95 1128-150.5Q1145-206 1145-272L1145-272Q1145-346 1125.5-384.5Q1106-423 1053-423L1053-423Q1011-423 978.5-392.5Q946-362 928-308Q910-254 910-181L910-181Q910-107 930-67.5Q950-28 1004-28ZM1441 10L1441 10Q1404 10 1380.5-19Q1357-48 1357-98L1357-98Q1357-108 1358.5-118Q1360-128 1361-138L1361-138L1406-389L1328-424L1328-430L1488-460L1492-460L1440-154Q1436-129 1436-118L1436-118Q1436-90 1449.5-70.5Q1463-51 1494-51L1494-51Q1515-51 1536.5-66Q1558-81 1578-102Q1598-123 1614-141L1614-141L1657-389L1588-424L1588-430L1740-460L1744-460L1684-119Q1679-89 1682.5-76Q1686-63 1701-63L1701-63Q1718-63 1738-81.5Q1758-100 1776-138L1776-138L1789-132Q1760-57 1726.5-23.5Q1693 10 1658 10L1658 10Q1623 10 1610.5-17Q1598-44 1605-89L1605-89L1606-95L1603-95Q1569-57 1544-34Q1519-11 1495.5-0.5Q1472 10 1441 10ZM1905 10L1905 10Q1870 10 1857.5-17Q1845-44 1852-89L1852-89L1955-680L1868-714L1868-720L2041-750L2044-750L1933-119Q1928-89 1931.5-76Q1935-63 1948-63L1948-63Q1965-63 1985-81.5Q2005-100 2023-138L2023-138L2036-132Q2007-57 1973.5-23.5Q1940 10 1905 10ZM2187 10L2187 10Q2152 10 2139-17Q2126-44 2134-89L2134-89L2187-390L2100-424L2100-430L2273-460L2276-460L2215-119Q2210-89 2213.5-76Q2217-63 2230-63L2230-63Q2247-63 2267-81.5Q2287-100 2305-138L2305-138L2318-132Q2289-57 2255.5-23.5Q2222 10 2187 10ZM2469 0L2393 0L2462-389L2384-424L2384-430L2526-460L2529-460L2529-355L2533-355Q2569-394 2595.5-417Q2622-440 2647.5-450Q2673-460 2705-460L2705-460Q2754-460 2780.5-420Q2807-380 2795-312L2795-312L2760-119Q2755-89 2758.5-76Q2762-63 2775-63L2775-63Q2792-63 2812-81.5Q2832-100 2850-138L2850-138L2863-132Q2834-57 2800.5-23.5Q2767 10 2732 10L2732 10Q2697 10 2684-17Q2671-44 2679-89L2679-89L2718-309Q2723-344 2709.5-371.5Q2696-399 2652-399L2652-399Q2630-399 2606.5-384Q2583-369 2561-348.5Q2539-328 2522-309L2522-309L2469 0Z"/><circle class="word-dot" cx="2258" cy="-642" r="61.6"/></svg>
-    </h1>
-    <p class="lede">Push a key and speak. Moulin types what you say in any app, with the speech-to-text of your ChatGPT subscription.</p>
-    <div class="actions">
-      <a class="button solid" href="https://github.com/brohoya/moulin/releases/latest">Download for macOS</a>
-      <button class="button ghost" id="listen" type="button" aria-pressed="false" hidden>
-        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg>
-        <span>Turn the sails with your voice</span>
-      </button>
-    </div>
-    <p class="listen-note" id="listen-note" aria-live="polite"></p>
+  <p class="listen-note" id="listen-note" aria-live="polite"></p>
+
+  <div class="words">
+    <h1 class="wordmark"><svg viewBox="30 -756 2837 772" role="img" aria-label="Moulin"><path class="word-face" d="M119 0L43 0L112-389L34-424L34-430L176-460L179-460L179-355L183-355Q218-394 243-417Q268-440 292-450Q316-460 348-460L348-460Q385-460 409-432Q433-404 435-355L435-355L440-355Q475-394 500-417Q525-440 549-450Q573-460 605-460L605-460Q650-460 675-420Q700-380 688-312L688-312L653-119Q648-89 651.5-76Q655-63 668-63L668-63Q685-63 705-81.5Q725-100 743-138L743-138L756-132Q727-57 693.5-23.5Q660 10 625 10L625 10Q590 10 577-17Q564-44 572-89L572-89L611-309Q617-344 604.5-371.5Q592-399 552-399L552-399Q530-399 508.5-384.5Q487-370 467-349.5Q447-329 431-311L431-311L375 0L299 0L354-309Q360-344 347.5-371.5Q335-399 295-399L295-399Q273-399 251-384Q229-369 208.5-348.5Q188-328 172-309L172-309L119 0ZM993 10L993 10Q906 10 864.5-44.5Q823-99 823-184L823-184Q823-231 840-279.5Q857-328 889-369Q921-410 965-435Q1009-460 1062-460L1062-460Q1149-460 1190.5-406Q1232-352 1232-266L1232-266Q1232-221 1215.5-172.5Q1199-124 1167.5-82.5Q1136-41 1092-15.5Q1048 10 993 10ZM1004-28L1004-28Q1048-28 1079.5-61.5Q1111-95 1128-150.5Q1145-206 1145-272L1145-272Q1145-346 1125.5-384.5Q1106-423 1053-423L1053-423Q1011-423 978.5-392.5Q946-362 928-308Q910-254 910-181L910-181Q910-107 930-67.5Q950-28 1004-28ZM1441 10L1441 10Q1404 10 1380.5-19Q1357-48 1357-98L1357-98Q1357-108 1358.5-118Q1360-128 1361-138L1361-138L1406-389L1328-424L1328-430L1488-460L1492-460L1440-154Q1436-129 1436-118L1436-118Q1436-90 1449.5-70.5Q1463-51 1494-51L1494-51Q1515-51 1536.5-66Q1558-81 1578-102Q1598-123 1614-141L1614-141L1657-389L1588-424L1588-430L1740-460L1744-460L1684-119Q1679-89 1682.5-76Q1686-63 1701-63L1701-63Q1718-63 1738-81.5Q1758-100 1776-138L1776-138L1789-132Q1760-57 1726.5-23.5Q1693 10 1658 10L1658 10Q1623 10 1610.5-17Q1598-44 1605-89L1605-89L1606-95L1603-95Q1569-57 1544-34Q1519-11 1495.5-0.5Q1472 10 1441 10ZM1905 10L1905 10Q1870 10 1857.5-17Q1845-44 1852-89L1852-89L1955-680L1868-714L1868-720L2041-750L2044-750L1933-119Q1928-89 1931.5-76Q1935-63 1948-63L1948-63Q1965-63 1985-81.5Q2005-100 2023-138L2023-138L2036-132Q2007-57 1973.5-23.5Q1940 10 1905 10ZM2187 10L2187 10Q2152 10 2139-17Q2126-44 2134-89L2134-89L2187-390L2100-424L2100-430L2273-460L2276-460L2215-119Q2210-89 2213.5-76Q2217-63 2230-63L2230-63Q2247-63 2267-81.5Q2287-100 2305-138L2305-138L2318-132Q2289-57 2255.5-23.5Q2222 10 2187 10ZM2469 0L2393 0L2462-389L2384-424L2384-430L2526-460L2529-460L2529-355L2533-355Q2569-394 2595.5-417Q2622-440 2647.5-450Q2673-460 2705-460L2705-460Q2754-460 2780.5-420Q2807-380 2795-312L2795-312L2760-119Q2755-89 2758.5-76Q2762-63 2775-63L2775-63Q2792-63 2812-81.5Q2832-100 2850-138L2850-138L2863-132Q2834-57 2800.5-23.5Q2767 10 2732 10L2732 10Q2697 10 2684-17Q2671-44 2679-89L2679-89L2718-309Q2723-344 2709.5-371.5Q2696-399 2652-399L2652-399Q2630-399 2606.5-384Q2583-369 2561-348.5Q2539-328 2522-309L2522-309L2469 0Z"/><circle class="word-dot" cx="2258" cy="-642" r="61.6"/></svg></h1>
+    <p class="pun"><i lang="fr">moulin à paroles</i> <span class="ipa" lang="fr-fonipa">/mu.lɛ̃ a pa.ʁɔl/</span> noun, French. A person who talks all the time. See also: <i lang="fr">pipelette</i>.</p>
+
+    <p class="lede">Push a key, talk, and push it again. Moulin types what you said, in any app.</p>
+    <p class="why">Why ChatGPT? Its speech-to-text is the best that we tried, in English, in French, and in a mix of the two. Local models are not close. Moulin uses it with your own ChatGPT account.</p>
+    <p class="caution"><strong>Caution:</strong> Moulin sends each recording from a hidden chatgpt.com window where you are signed in, as the microphone button of ChatGPT does. The OpenAI Terms of Use do not allow this automation, so OpenAI can warn or suspend an account. For one person with a normal use, the risk is low, but it is not zero.</p>
+
+    <section class="install" aria-label="Install">
+      <div class="tabs" role="tablist" aria-label="System">
+        <button class="tab" id="tab-macos" type="button" role="tab" aria-selected="true" aria-controls="panel-macos">macOS</button>
+        <button class="tab" id="tab-windows" type="button" role="tab" aria-selected="false" aria-controls="panel-windows" tabindex="-1">Windows</button>
+        <button class="tab" id="tab-linux" type="button" role="tab" aria-selected="false" aria-controls="panel-linux" tabindex="-1">Linux</button>
+      </div>
+
+      <div class="panel" id="panel-macos" role="tabpanel" aria-labelledby="tab-macos" data-name="macOS">
+        <div class="command"><code>curl -fsSL https://brohoya.github.io/moulin/install.sh | sh</code><button class="copy" type="button">Copy</button></div>
+        <p>Or <a href="https://github.com/brohoya/moulin/releases/latest/download/Moulin-mac-arm64.dmg">download the disk image</a>. For a Mac with Apple silicon. Apple did not notarize Moulin, so after a download in the browser, open System Settings &gt; Privacy &amp; Security and click Open Anyway.</p>
+      </div>
+
+      <div class="panel" id="panel-windows" role="tabpanel" aria-labelledby="tab-windows" data-name="Windows">
+        <a class="download" href="https://github.com/brohoya/moulin/releases/latest/download/Moulin-windows-x64.exe">Download for Windows</a>
+        <p>At the first start, SmartScreen warns about an unknown app: click More info, then Run anyway. This build is new and not tested much.</p>
+      </div>
+
+      <div class="panel" id="panel-linux" role="tabpanel" aria-labelledby="tab-linux" data-name="Linux">
+        <div class="command"><code>curl -fsSL https://brohoya.github.io/moulin/install.sh | sh</code><button class="copy" type="button">Copy</button></div>
+        <p>Or <a href="https://github.com/brohoya/moulin/releases/latest/download/Moulin-linux-x86_64.AppImage">download the AppImage</a>. It needs libfuse2. On Ubuntu 24.04, start it with <code>--no-sandbox</code>. This build is new and not tested much.</p>
+      </div>
+
+      <p class="then">Then sign in to ChatGPT in the Moulin window, and push <kbd>F5</kbd>.</p>
+    </section>
+
+    <p class="credits">A project by Bixente Elgart. Not affiliated with OpenAI. <a href="https://github.com/brohoya/moulin">Source on GitHub</a></p>
   </div>
+
   <svg class="ink" aria-hidden="true" focusable="false"></svg>
-</header>
-
-<main>
-  <section class="how" aria-labelledby="how-title">
-    <h2 id="how-title">How it works</h2>
-    <img class="demo" src="media/demo.svg" width="960" height="560" alt="A note on a Mac. The user pushes F5, a dark pop-up shows the recording, the user pushes F5 again, and the sentence appears at the cursor.">
-    <ol class="steps">
-      <li>
-        <h3>Push <kbd>F5</kbd> and speak.</h3>
-        <p>A small pop-up shows the recording, and the windmill in the menu bar turns red.</p>
-      </li>
-      <li>
-        <h3>Push <kbd>F5</kbd> again.</h3>
-        <p>Moulin sends the audio to ChatGPT from its own hidden window. The sails turn while ChatGPT transcribes.</p>
-      </li>
-      <li>
-        <h3>The text is at your cursor.</h3>
-        <p>Moulin pastes the text in the app that you use. The text also stays in the clipboard.</p>
-      </li>
-    </ol>
-  </section>
-
-  <section class="facts" aria-labelledby="facts-title">
-    <h2 id="facts-title">Good to know</h2>
-    <dl>
-      <div>
-        <dt>Every app</dt>
-        <dd>Moulin pastes where the cursor is: a mail, a note, a code editor, or a chat.</dd>
-      </div>
-      <div>
-        <dt>Your ChatGPT plan</dt>
-        <dd>No API key and no extra cost. You sign in to ChatGPT one time, in the Moulin window.</dd>
-      </div>
-      <div>
-        <dt>About 1.6 seconds</dt>
-        <dd>For 30 seconds of speech, the text arrives 1.4 to 1.8 seconds after you stop.</dd>
-      </div>
-      <div>
-        <dt>No copies</dt>
-        <dd>Moulin sends the audio only to ChatGPT. It keeps the audio in memory until the text is in your clipboard, and it never writes the audio to disk.</dd>
-      </div>
-    </dl>
-    <figure class="states">
-      <ul>
-        <li data-state="ready"><span class="glyph"></span>Ready</li>
-        <li data-state="recording"><span class="glyph"></span>Recording</li>
-        <li data-state="transcribing"><span class="glyph"></span>Transcribing</li>
-        <li data-state="problem"><span class="glyph"></span>Problem</li>
-      </ul>
-      <figcaption>The windmill in the menu bar shows what Moulin does.</figcaption>
-    </figure>
-  </section>
-
-  <section class="install" id="install" aria-labelledby="install-title">
-    <h2 id="install-title">Install</h2>
-    <div class="install-grid">
-      <div>
-        <p class="caution"><strong>Caution:</strong> Moulin automates the ChatGPT web app. The OpenAI Terms of Use forbid this, so OpenAI can warn or suspend your account. A change of the web app can also stop Moulin.</p>
-        <ol class="install-steps">
-          <li>Download Moulin for macOS (Apple silicon), open the disk image, and drag Moulin to Applications.</li>
-          <li>Start Moulin. Apple did not notarize the app, so macOS blocks the first start: open System Settings &gt; Privacy &amp; Security, and click Open Anyway.</li>
-          <li>Sign in to ChatGPT in the Moulin window. Then allow the microphone, and allow Accessibility so that Moulin can paste.</li>
-        </ol>
-        <a class="button solid" href="https://github.com/brohoya/moulin/releases/latest">Download for macOS</a>
-      </div>
-      <div class="source">
-        <h3>Build it yourself</h3>
-        <p>Moulin also builds for Windows and Linux, but these builds are not tested yet. You need Node.js.</p>
-        <pre><code>git clone https://github.com/brohoya/moulin.git
-cd moulin
-npm install
-npm run dist:mac</code></pre>
-        <p>Use <code>dist:win</code> or <code>dist:linux</code> for the other systems. The <a href="https://github.com/brohoya/moulin#readme">README</a> gives the details.</p>
-      </div>
-    </div>
-  </section>
 </main>
-
-<footer class="footer">
-  <p class="name"><i lang="fr">moulin à paroles</i> <span class="ipa" lang="fr-fonipa">/mu.lɛ̃ a pa.ʁɔl/</span> <span class="pos">noun, French.</span> A person who talks all the time.</p>
-  <p class="credits">Moulin is a project by Bixente Elgart. It is not affiliated with OpenAI. <a href="https://github.com/brohoya/moulin">Source on GitHub</a></p>
-</footer>
-
 </body>
 </html>

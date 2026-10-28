@@ -1,16 +1,11 @@
-<h1 align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/media/hero-night.svg">
-    <img src="docs/media/hero-day.svg" alt="Moulin">
-  </picture>
-</h1>
+<h1 align="center"><img src="docs/media/banner.svg" alt="Moulin"></h1>
 
 <p align="center">Dictation from the menu bar with the speech-to-text of your ChatGPT subscription.<br>
-<a href="https://brohoya.github.io/moulin/">Website</a> &nbsp; <a href="#install">Install</a> &nbsp; <a href="#how-it-works">How it works</a></p>
+<a href="https://brohoya.github.io/moulin/">Website</a> &nbsp; <a href="https://github.com/brohoya/moulin/releases/latest">Download</a> &nbsp; <a href="#how-it-works">How it works</a></p>
 
 <p align="center"><img src="docs/media/demo.svg" alt="A note on a Mac. The user pushes F5, a dark pop-up shows the recording, the user pushes F5 again, and the sentence appears at the cursor."></p>
 
-The name comes from "moulin à paroles": a person who talks all the time.
+The name comes from "moulin à paroles" (also "pipelette"): in French, a person who talks all the time.
 
 1. Push F5 and speak. A small pop-up shows the recording.
 2. Push F5 again. Moulin sends the audio to ChatGPT from its own hidden browser.
@@ -20,15 +15,33 @@ Moulin works on macOS, Windows, and Linux. Only the macOS build is tested.
 
 ## Install
 
+On macOS (Apple silicon) and Linux (x86_64), this command installs the latest release and starts it:
+
+```sh
+curl -fsSL https://brohoya.github.io/moulin/install.sh | sh
+```
+
+It puts `Moulin.app` in `~/Applications` (macOS) or the AppImage at `~/.local/bin/moulin` (Linux). Run it again to update. The script is [docs/install.sh](docs/install.sh).
+
+Or download the file for your system from the [latest release](https://github.com/brohoya/moulin/releases/latest):
+
+- macOS: [Moulin-mac-arm64.dmg](https://github.com/brohoya/moulin/releases/latest/download/Moulin-mac-arm64.dmg). Apple did not notarize Moulin, so after a download in the browser, macOS blocks the first start: open System Settings > Privacy & Security and click Open Anyway. The install command does not need this step.
+- Windows: [Moulin-windows-x64.exe](https://github.com/brohoya/moulin/releases/latest/download/Moulin-windows-x64.exe). The installer has no signature, so SmartScreen warns on the first run: click "More info", then "Run anyway". Moulin shows in the notification area. Windows can hide it behind the arrow (^).
+- Linux: [Moulin-linux-x86_64.AppImage](https://github.com/brohoya/moulin/releases/latest/download/Moulin-linux-x86_64.AppImage). Run `chmod +x Moulin-linux-x86_64.AppImage`, then start it. The AppImage needs `libfuse2`. If it does not start on Ubuntu 24.04 (AppArmor blocks the Chromium sandbox), start it with `--no-sandbox`. The icon shows in the top bar on KDE and Ubuntu. On other GNOME desktops, install the "AppIndicator and KStatusNotifierItem Support" extension. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland).
+
+The Windows and Linux builds are not tested much yet.
+
+### Build from the source
+
 - macOS: run `npm run signing:setup` one time, then `npm run reinstall`. The second command builds the app (about 25 seconds), signs it with a local certificate, replaces `~/Applications/Moulin.app`, and starts it. macOS ties the permissions to the bundle ID and the certificate, so it keeps them after each reinstall. `npm run dist:mac` makes a dmg and a zip with an ad-hoc signature instead: after an install of such a build, macOS asks for the permissions again.
-- Windows: run `dist/Moulin Setup 1.0.0.exe` (built with `npm run dist:win`). The installer has no signature, so SmartScreen warns on the first run: click "More info", then "Run anyway". Moulin shows in the notification area. Windows can hide it behind the arrow (^).
-- Linux: run `chmod +x Moulin-1.0.0.AppImage`, then start it (built with `npm run dist:linux`). The AppImage needs `libfuse2`. If it does not start on Ubuntu 24.04 (AppArmor blocks the Chromium sandbox), start it with `--no-sandbox`. The icon shows in the top bar on KDE and Ubuntu. On other GNOME desktops, install the "AppIndicator and KStatusNotifierItem Support" extension. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland).
+- Windows: `npm run dist:win` makes `dist/Moulin-windows-x64.exe`.
+- Linux: `npm run dist:linux` makes `dist/Moulin-linux-x86_64.AppImage`.
 
 ### Linux with Wayland
 
 Wayland lets an app use a global shortcut only through the desktop portal (KDE, GNOME 48 or later, Hyprland). On other desktops, or if the shortcut does not work:
 
-1. In the system settings (GNOME: Keyboard > Custom Shortcuts, KDE: Shortcuts > Add New > Command), add a shortcut that runs `/path/to/Moulin-1.0.0.AppImage --toggle`.
+1. In the system settings (GNOME: Keyboard > Custom Shortcuts, KDE: Shortcuts > Add New > Command), add a shortcut that runs `~/.local/bin/moulin --toggle` (or the path of your AppImage).
 2. In the Moulin settings, click the shortcut and push Backspace, so that Moulin has no shortcut of its own.
 
 On Wayland, the desktop can also put the pop-up in another place than the bottom of the screen, and GNOME can refuse the clipboard to a background app. Most Linux terminals paste with Ctrl+Shift+V, so the automatic Ctrl+V does not paste there.
@@ -88,17 +101,18 @@ The E2E test does one full dictation: start, stop, upload, clipboard. A second M
 
 The folder [docs/](docs/) is the website: one page, with no build step and no request to another site. The fonts are in [docs/fonts/](docs/fonts/) (Spectral and EB Garamond, SIL Open Font License).
 
-To publish it with GitHub Pages:
+GitHub Pages publishes the folder `docs` of the branch `main` at https://brohoya.github.io/moulin/, with the install command. Any static host can serve the folder without a change. To see the page on this computer, run `python3 -m http.server -d docs 8000` and open http://localhost:8000. A page that opens from the disk (`file://`) cannot load its scripts. The social preview of the repository is [docs/media/social.png](docs/media/social.png) (Settings > General > Social preview).
 
-1. Push the repository to GitHub.
-2. In Settings > Pages, set "Deploy from a branch", the branch `main`, and the folder `/docs`.
-3. In Settings > General > Social preview, upload [docs/media/social.png](docs/media/social.png).
-
-The page is then at https://brohoya.github.io/moulin/. Any static host can serve the folder `docs` without a change. To see the page on this computer, run `python3 -m http.server -d docs 8000` and open http://localhost:8000. A page that opens from the disk (`file://`) cannot load its scripts.
-
-The mark is a windmill whose sails hold a sound. The seven bars in each sail are the loudness of the word "moulin", spoken by the macOS voice Thomas, in seven equal slices from the tip of the sail to the hub. The red hub is the recording light. The wordmark is Spectral Italic, as outlines in [docs/wordmark.js](docs/wordmark.js). Run `npm run icons` after a change of [docs/mill.js](docs/mill.js) or [scripts/media.mjs](scripts/media.mjs).
+The mark is a windmill whose sails hold a sound. The seven bars in each sail are the loudness of the word "moulin", spoken by the macOS voice Thomas, in seven equal slices from the tip of the sail to the hub. The red hub is the recording light. The colors are flat: the green of windmill doors and of the Paris street furniture, white, and red only for the recording. The wordmark is Spectral Italic, as outlines in [docs/wordmark.js](docs/wordmark.js). Run `npm run icons` after a change of [docs/mill.js](docs/mill.js) or [scripts/media.mjs](scripts/media.mjs).
 
 On the website, the sails turn in a light wind, and a drag with the mouse turns them. "Turn the sails with your voice" asks for the microphone: the page measures only the loudness, and no audio leaves the browser.
+
+## Release
+
+1. Set `version` in [package.json](package.json), and commit.
+2. Push a tag with the same version: `git tag v1.0.1 && git push origin v1.0.1`.
+
+The workflow [.github/workflows/release.yml](.github/workflows/release.yml) builds Moulin on macOS, Windows, and Linux, and publishes the release with the three files. The file names do not include the version, so the links of the website and of this README always give the latest release.
 
 ## Results (October 2026)
 

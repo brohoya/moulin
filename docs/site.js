@@ -1,17 +1,18 @@
-// The hero of the website. The sails turn in a light wind. A drag with the mouse turns them faster.
+// The website: one screen. The sails turn in a light wind, and a drag with the mouse turns them faster.
 // With the visitor's permission, the loudness of the microphone turns them and fills the bars of the sails.
-import { SAIL_FINE, VOICE, barRect, glyphInner, millSvg, sailsSvg, starsSvg, towerParts, windSvg } from './mill.js';
+// Below the words, one tab for each system shows how to install Moulin.
+import { SAIL_FINE, VOICE, barRect, millSvg, sailsSvg, towerParts, windSvg } from './mill.js';
 import { WORDMARK } from './wordmark.js';
 
 const hero = document.querySelector('.hero');
 const scene = hero.querySelector('.scene');
 const ink = hero.querySelector('.ink');
 const word = hero.querySelector('.wordmark svg');
-const copy = hero.querySelector('.hero-copy');
+const words = hero.querySelector('.words');
 const listen = document.getElementById('listen');
 const note = document.getElementById('listen-note');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-// Keep this query equal to the query of the stacked hero in site.css.
+// Keep this query equal to the query of the stacked page in site.css.
 const stacked = matchMedia('(max-width: 979px), (max-aspect-ratio: 5/4)');
 
 const G = SAIL_FINE;
@@ -53,19 +54,18 @@ function layout() {
   const W = Math.round(box.width);
   const H = Math.round(box.height);
   const wordTop = w.top - box.top;
-  const c = copy.getBoundingClientRect();
-  const lede = copy.querySelector('.lede').getBoundingClientRect();
+  // The right edge of the text. The sails may pass behind the wordmark, but not behind the text and the install tabs.
+  const right = Math.max(...[...words.querySelectorAll('.lede, .why, .caution, .install')].map((el) => el.getBoundingClientRect().right)) - box.left;
   const wide = !stacked.matches;
   let R;
   let hub;
   let ground;
   if (wide) {
-    // The sails may pass behind the wordmark, but not behind the sentence and the buttons.
     R = Math.min(H * 0.33, W * 0.23);
-    let x = Math.max(W * 0.69, lede.right - box.left + 0.92 * (REACH / G.length) * R);
+    let x = Math.max(W * 0.69, right + 0.92 * (REACH / G.length) * R);
     while (x + 0.5 * (REACH / G.length) * R > W && R > 120) {
       R *= 0.94;
-      x = Math.max(W * 0.69, lede.right - box.left + 0.92 * (REACH / G.length) * R);
+      x = Math.max(W * 0.69, right + 0.92 * (REACH / G.length) * R);
     }
     hub = [x, H * 0.42];
     ground = Math.min(H - 34, hub[1] + 1.42 * R);
@@ -74,8 +74,7 @@ function layout() {
     R = Math.max(90, Math.min(W * 0.4, (ground - 70) / 2.3));
     hub = [W * 0.64, Math.max(62 + (REACH / G.length) * R, ground - 1.3 * R)];
   }
-  const text = { x: c.left - box.left - 12, y: c.top - box.top - 12, w: Math.min(c.width, w.width + 40) + 24, h: c.height + 24 };
-  return { W, H, R, hub, ground, wide, text, word: { x: w.left - box.left, y: wordTop, w: w.width } };
+  return { W, H, R, hub, ground, wide, word: { x: w.left - box.left, y: wordTop, w: w.width } };
 }
 
 function build() {
@@ -83,31 +82,22 @@ function build() {
   if (!L.W || !L.H) return;
   const { W, H, R, hub, ground, wide } = L;
   const s = R / G.length;
-  const height = (ground + 12 - hub[1]) / s - 30;
+  const height = Math.max(40, (ground + 12 - hub[1]) / s - 30); // The tower, in sail units, down to the hill.
   const t = towerParts(height);
   const at = `translate(${r2(hub[0])} ${r2(hub[1])}) scale(${r2(s * 1000) / 1000})`;
-  // The near hill: low at the left on a wide screen, so that the text stays on the sky.
+  // The hill: low at the left on a wide screen, so that the text stays on the plain field.
   const left = wide ? H - 8 : ground + 26;
-  const near = `M0 ${H} L0 ${r2(left)} C ${r2(W * 0.3)} ${r2(left - (left - ground) * 0.4)}, ${r2(hub[0] - 1.6 * R)} ${r2(ground + 4)}, ${r2(hub[0])} ${r2(ground)} S ${r2(W - 30)} ${r2(ground + 12)}, ${W} ${r2(ground + 22)} L${W} ${H} Z`;
-  const farTop = ground - Math.max(36, H * 0.06);
-  const far = `M0 ${r2(farTop + 30)} C ${r2(W * 0.22)} ${r2(farTop - 14)}, ${r2(W * 0.46)} ${r2(farTop + 18)}, ${r2(W * 0.6)} ${r2(farTop + 4)} S ${r2(W * 0.9)} ${r2(farTop - 26)}, ${W} ${r2(farTop - 8)} L${W} ${H} L0 ${H} Z`;
+  const hill = `M0 ${H} L0 ${r2(left)} C ${r2(W * 0.3)} ${r2(left - (left - ground) * 0.4)}, ${r2(hub[0] - 1.6 * R)} ${r2(ground + 4)}, ${r2(hub[0])} ${r2(ground)} S ${r2(W - 30)} ${r2(ground + 12)}, ${W} ${r2(ground + 22)} L${W} ${H} Z`;
 
   scene.setAttribute('viewBox', `0 0 ${W} ${H}`);
   scene.innerHTML = `<defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop class="stop-1" offset="0"/><stop class="stop-2" offset="0.62"/><stop class="stop-3" offset="1"/></linearGradient>
-    <radialGradient id="glow" cx="${r2(hub[0])}" cy="${r2(hub[1])}" r="${r2(Math.max(W, H) * 0.62)}" gradientUnits="userSpaceOnUse"><stop class="glow-stop" offset="0" stop-opacity="0.42"/><stop class="glow-stop" offset="1" stop-opacity="0"/></radialGradient>
-    <linearGradient id="near" x1="0" y1="0" x2="0" y2="1"><stop class="near-1" offset="0"/><stop class="near-2" offset="1"/></linearGradient>
     <radialGradient id="halo"><stop offset="0" stop-color="#FF3B30" stop-opacity="0.7"/><stop offset="1" stop-color="#FF3B30" stop-opacity="0"/></radialGradient>
   </defs>
-  <rect width="${W}" height="${H}" fill="url(#sky)"/>
-  <rect width="${W}" height="${H}" fill="url(#glow)"/>
-  <g class="stars">${starsSvg({ width: W, height: H, count: Math.round((W * H) / 26000), avoid: [L.text] })}</g>
-  <g class="winds">${windSvg({ width: W, height: H })}</g>
-  <path class="far" d="${far}" fill-opacity="0.55"/>
+  <g class="winds">${windSvg({ width: W, height: H, opacity: [0.18, 0.15, 0.13] })}</g>
   <g transform="${at}">${millSvg({ id: 'hero', height, g: G, gap: 10, voice: motion.shown })}<circle class="halo" r="110" fill="url(#halo)"/></g>
-  <path d="${near}" fill="url(#near)"/>`;
+  <path class="hill" d="${hill}"/>`;
 
-  // The wordmark again, in the color of the sky, where the white mill passes behind the letters.
+  // The wordmark again, in the color of the field, where the white mill passes behind the letters.
   const k = L.word.w / 2837;
   ink.setAttribute('viewBox', `0 0 ${W} ${H}`);
   ink.innerHTML = `<defs><mask id="behind" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
@@ -137,7 +127,7 @@ function draw(bars) {
       });
     }
   }
-  // The CSS gives the hub a soft glow at night. While the microphone listens, the glow follows the loudness.
+  // While the microphone listens, a red glow around the hub follows the loudness.
   if (view.halo) view.halo.style.opacity = mic ? r2(Math.min(1, 0.2 + mic.level * 1.6)) : '';
 }
 
@@ -268,6 +258,7 @@ function stopMic() {
 
 function setListening(on, message = '') {
   listen.setAttribute('aria-pressed', String(on));
+  listen.setAttribute('aria-label', on ? LABELS.on : LABELS.off);
   listen.querySelector('span').textContent = on ? LABELS.on : LABELS.off;
   note.textContent = message;
 }
@@ -299,11 +290,47 @@ document.addEventListener('visibilitychange', () => {
   wake();
 });
 
-// ---------- The four states of the menu bar icon. ----------
+// ---------- Install: one tab for each system, and a copy button for each command. ----------
 
-for (const item of document.querySelectorAll('.states li')) {
-  const glyph = item.querySelector('.glyph');
-  glyph.innerHTML = `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">${glyphInner({ id: `state-${item.dataset.state}`, color: 'currentColor' })}</svg>`;
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+
+function select(tab, focus = false) {
+  for (const item of tabs) {
+    const on = item === tab;
+    item.setAttribute('aria-selected', String(on));
+    item.tabIndex = on ? 0 : -1;
+    document.getElementById(item.getAttribute('aria-controls')).hidden = !on;
+  }
+  if (focus) tab.focus();
+  build(); // The text can change height, and the mill follows it.
+}
+
+tabs.forEach((tab, i) => {
+  tab.addEventListener('click', () => select(tab));
+  tab.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    select(tabs[(i + step + tabs.length) % tabs.length], true);
+  });
+});
+
+// The tab of the visitor's system comes first. A phone gets the macOS tab.
+const system = `${navigator.userAgentData?.platform || ''} ${navigator.userAgent}`;
+const os = /windows/i.test(system) ? 'windows' : /linux|x11/i.test(system) && !/android/i.test(system) ? 'linux' : 'macos';
+select(document.getElementById(`tab-${os}`));
+
+for (const button of document.querySelectorAll('.command .copy')) {
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(button.previousElementSibling.textContent);
+      button.textContent = 'Copied';
+    } catch {
+      window.getSelection().selectAllChildren(button.previousElementSibling); // The visitor can copy the selection.
+      button.textContent = 'Selected';
+    }
+    setTimeout(() => { button.textContent = 'Copy'; }, 1600);
+  });
 }
 
 // ---------- Start. ----------

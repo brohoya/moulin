@@ -1,13 +1,13 @@
 // Makes the Moulin images from the shapes in docs/mill.js:
 // - the app icon: build/icon.png, assets/icon.png, and assets/logo.svg
-// - the tray images in assets/tray, and the wordmark and the header of the settings window
+// - the tray images in assets/tray
 // - the images of the website and the README in docs/media
 // Run it with "npm run icons" after a change of the shapes or the colors.
 import { Resvg } from '@resvg/resvg-js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { COLORS, glyphSvg, iconSvg } from '../docs/mill.js';
-import { demoSvg, faviconSvg, heroSvg, settingsHeaderSvg, socialSvg, wordmarkSvg } from './media.mjs';
+import { demoSvg, faviconSvg, heroSvg, socialSvg } from './media.mjs';
 
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
 
@@ -40,22 +40,16 @@ FRAMES.forEach((angle, i) => pair(`assets/tray/mac-busy${i}Template`, glyphSvg({
 pair('assets/tray/mac-recording', glyphSvg({ color: COLORS.signal }), 18);
 pair('assets/tray/mac-error', glyphSvg({ color: COLORS.amber }), 18);
 // Windows and Linux: a colored tile, readable on a light or a dark panel.
-pair('assets/tray/tile-idle', glyphSvg({ color: COLORS.white, badge: COLORS.sky }), 16);
-FRAMES.forEach((angle, i) => pair(`assets/tray/tile-busy${i}`, glyphSvg({ angle, color: COLORS.white, badge: COLORS.sky }), 16));
+pair('assets/tray/tile-idle', glyphSvg({ color: COLORS.white, badge: COLORS.green }), 16);
+FRAMES.forEach((angle, i) => pair(`assets/tray/tile-busy${i}`, glyphSvg({ angle, color: COLORS.white, badge: COLORS.green }), 16));
 pair('assets/tray/tile-recording', glyphSvg({ color: COLORS.white, badge: COLORS.signal }), 16);
 pair('assets/tray/tile-error', glyphSvg({ color: '#3A2600', badge: COLORS.amber }), 16);
-
-// The header of the settings window.
-write('assets/wordmark.svg', wordmarkSvg());
-write('assets/header-day.svg', settingsHeaderSvg({ night: false }));
-write('assets/header-night.svg', settingsHeaderSvg({ night: true }));
 
 // Website and README.
 write('docs/media/icon.png', png(icon, 512));
 write('docs/media/favicon.svg', faviconSvg());
 write('docs/media/apple-touch-icon.png', png(faviconSvg({ square: true }), 180));
-write('docs/media/hero-day.svg', heroSvg({ night: false }));
-write('docs/media/hero-night.svg', heroSvg({ night: true }));
+write('docs/media/banner.svg', heroSvg());
 write('docs/media/demo.svg', demoSvg());
 write('docs/media/social.png', png(socialSvg(), 1280));
 console.log('Images written to build/, assets/, and docs/media/.');

@@ -2,19 +2,18 @@
 // This file is a plain ES module with no dependencies. The website imports it in the browser.
 // scripts/make-icons.mjs imports it in Node and makes the app icon, the tray images, and the README images.
 
+// Flat colors, like a poster. The green is the paint of windmill doors and of the Paris street furniture.
+// The red is only for the recording light.
 export const COLORS = {
-  skyTop: '#4A68FF',
-  sky: '#2643DC',
-  skyBottom: '#1D33C2',
-  ground: '#172BA8',
-  nightTop: '#070B24',
-  night: '#10164A',
-  nightBottom: '#1A2263',
+  green: '#23493B',
+  greenDeep: '#1A382D',
+  greenNight: '#16302A',
   white: '#FFFFFF',
-  tower: '#E9EDFF',
+  tower: '#E6ECE4',
   signal: '#FF3B30',
   amber: '#FF9F0A',
-  ink: '#121634',
+  ink: '#15201B',
+  paper: '#F3F4F1',
 };
 
 // The loudness of the word "moulin" (macOS voice Thomas, 370 ms) in seven equal slices, from the tip of a sail to the hub.
@@ -100,9 +99,9 @@ export function squirclePath(x, y, size, radius, smoothing = 0.6) {
   ].join('');
 }
 
-// The mill in front of the sky, around the hub at (0, 0). The sails cut a thin gap in the tower, so that they stay readable.
+// The mill, around the hub at (0, 0). The sails cut a thin gap in the tower, so that they stay readable.
 // ids makes the ids of the mask unique when one page has more than one mill.
-export function millSvg({ id = 'mill', height = 430, angle = 45, voice = VOICE, g = SAIL, gap = 14, colors = COLORS, sailColor = colors.white, hole = colors.sky } = {}) {
+export function millSvg({ id = 'mill', height = 430, angle = 45, voice = VOICE, g = SAIL, gap = 14, colors = COLORS, sailColor = colors.white, hole = colors.green } = {}) {
   const t = towerParts(height);
   const sails = sailsSvg(g, voice, angle);
   const span = g.length + 2 * gap + height + 200;
@@ -122,20 +121,14 @@ export function iconSvg({ angle = 45, flat = false, square = false } = {}) {
   const tile = square ? 'M100 100 H924 V924 H100 Z' : squirclePath(100, 100, 824, 185.4);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${flat ? '100 100 824 824' : '0 0 1024 1024'}">
 <defs>
-  <linearGradient id="sky" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${C.skyTop}"/><stop offset="0.6" stop-color="${C.sky}"/><stop offset="1" stop-color="${C.skyBottom}"/></linearGradient>
-  <radialGradient id="glow" cx="512" cy="440" r="430" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#A9BAFF" stop-opacity="0.5"/><stop offset="0.55" stop-color="#A9BAFF" stop-opacity="0.12"/><stop offset="1" stop-color="#A9BAFF" stop-opacity="0"/></radialGradient>
-  <linearGradient id="rim" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="0.3" stop-color="#fff" stop-opacity="0"/></linearGradient>
   <clipPath id="tile"><path d="${tile}"/></clipPath>
-  <filter id="drop" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000A40" flood-opacity="0.3"/></filter>
-  <filter id="lift" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0A1A8C" flood-opacity="0.3"/></filter>
+  <filter id="drop" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000" flood-opacity="0.28"/></filter>
 </defs>
-<path d="${tile}" fill="url(#sky)"${flat ? '' : ' filter="url(#drop)"'}/>
+<path d="${tile}" fill="${C.green}"${flat ? '' : ' filter="url(#drop)"'}/>
 <g clip-path="url(#tile)">
-  <rect x="100" y="100" width="824" height="824" fill="url(#glow)"/>
-  <path d="M60 902 C 300 852, 724 852, 964 902 L964 1000 L60 1000 Z" fill="${C.ground}"/>
-  <g transform="translate(512 440)" filter="url(#lift)">${millSvg({ id: 'icon', angle })}</g>
+  <path d="M60 902 C 300 852, 724 852, 964 902 L964 1000 L60 1000 Z" fill="${C.greenDeep}"/>
+  <g transform="translate(512 440)">${millSvg({ id: 'icon', angle })}</g>
 </g>
-<path d="${tile}" fill="none" stroke="url(#rim)" stroke-width="3"/>
 </svg>`;
 }
 
@@ -159,16 +152,7 @@ export function glyphSvg({ angle = 45, color = '#000', badge = null } = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${back}${glyphInner({ angle, color })}</svg>`;
 }
 
-// ---------- The sky around the mill: used by the banners and by the website. ----------
-
-// A seeded random generator, so that the stars stay at the same place after each run.
-function random(seed) {
-  let s = seed;
-  return () => {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
+// ---------- The wind around the mill: used by the banners and by the website. ----------
 
 // Thin streaks of wind that slide along long curves. The CSS class "wind" animates them with the variable --run.
 export function windSvg({ width, height, opacity = [0.3, 0.26, 0.22] }) {
@@ -182,20 +166,4 @@ export function windSvg({ width, height, opacity = [0.3, 0.26, 0.22] }) {
     const d = `M${-200} ${y} C ${r2(width * 0.25)} ${r2(y - w.amp)}, ${r2(width * 0.6)} ${r2(y + w.amp)}, ${width + 200} ${r2(y - w.amp / 2)}`;
     return `<path class="wind" d="${d}" stroke-dasharray="${w.dash} ${w.gap}" style="animation-duration:${w.dur}s;animation-delay:${w.delay}s;--run:${-(w.dash + w.gap)}px" stroke-opacity="${opacity[i]}"/>`;
   }).join('');
-}
-
-// Small stars for the night sky. A few of them have the CSS class "twinkle". No star falls in the boxes of avoid (for example, text).
-export function starsSvg({ width, height, count = 46, seed = 7, avoid = [] }) {
-  const rnd = random(seed);
-  let out = '';
-  for (let i = 0; i < count; i++) {
-    const x = r2(rnd() * width);
-    const y = r2(rnd() ** 1.6 * height * 0.78);
-    const r = r2(0.6 + rnd() * 1.3);
-    const o = r2(0.25 + rnd() * 0.65);
-    const twinkle = i % 5 === 0 ? ` class="twinkle" style="animation-delay:${r2(-rnd() * 6)}s"` : '';
-    if (avoid.some((b) => x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h)) continue;
-    out += `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" fill-opacity="${o}"${twinkle}/>`;
-  }
-  return out;
 }

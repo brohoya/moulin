@@ -1,9 +1,9 @@
 :root {
   color-scheme: dark;
   font: 600 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
-  --night: rgba(18, 22, 58, 0.94);
+  --ink: rgba(22, 32, 27, 0.94);
   --signal: #ff453a;
-  --mill: #f2f4ff;
+  --mill: #f2f5f3;
   --ease: cubic-bezier(0.3, 0.8, 0.3, 1);
 }
 
@@ -32,8 +32,8 @@ body {
   overflow: hidden;
   white-space: nowrap;
   border-radius: 20px;
-  background: var(--night);
-  box-shadow: 0 3px 9px rgba(3, 6, 32, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: var(--ink);
+  box-shadow: 0 3px 9px rgba(4, 10, 7, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   color: #fff;
   cursor: default;
   transition: opacity 0.18s ease, transform 0.28s var(--ease), width 0.28s var(--ease);

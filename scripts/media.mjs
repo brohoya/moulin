@@ -1,6 +1,6 @@
 // The images of the website and the README, made from the shapes in docs/mill.js and docs/wordmark.js.
 // scripts/make-icons.mjs writes them to docs/media. The animations are CSS in the SVG files, so they also play in a README.
-import { COLORS, SAIL_FINE, glyphInner, iconSvg, millSvg, starsSvg, windSvg } from '../docs/mill.js';
+import { COLORS, SAIL_FINE, glyphInner, iconSvg, millSvg, windSvg } from '../docs/mill.js';
 import { WORDMARK } from '../docs/wordmark.js';
 
 const C = COLORS;
@@ -12,79 +12,29 @@ function wordmark({ x, y, size, color = C.white, dot = C.signal }) {
   return `<g transform="translate(${x} ${y}) scale(${r2(size / 1000)})"><path d="${d}" fill="${color}"/><circle cx="${o.cx}" cy="${o.cy}" r="${o.r}" fill="${dot}"/></g>`;
 }
 
-// A wide banner: the mill on a hill at the right, the wordmark at the left. Used for the README and the social card.
-export function heroSvg({ night = false, width = 1280, height = 560, hub = [904, 274], scale = 0.74, word = { x: 96, y: 332, size: 180 }, round = 28, animate = true } = {}) {
-  const sky = night ? [C.nightTop, C.night, C.nightBottom] : [C.skyTop, C.sky, C.skyBottom];
+// A wide banner in flat colors: the mill on a hill at the right, the wordmark at the left. Used for the README and the social card.
+export function heroSvg({ width = 1280, height = 560, hub = [904, 274], scale = 0.74, word = { x: 96, y: 332, size: 180 }, round = 28, animate = true } = {}) {
   const base = height - 30;
   const tower = r2((base - hub[1]) / scale - 30);
-  const mill = night ? { ...C, tower: '#AEB8E6', white: '#E4E9FF' } : C;
-  const hole = night ? '#151C55' : C.sky;
   const hill = `M0 ${height} L0 ${r2(base + 22)} C ${r2(width * 0.3)} ${r2(base + 10)}, ${r2(hub[0] - 300)} ${r2(base - 4)}, ${hub[0]} ${r2(base - 2)} S ${r2(width - 40)} ${r2(base + 6)}, ${width} ${r2(base + 12)} L${width} ${height} Z`;
-  const far = `M0 ${r2(base - 20)} C ${r2(width * 0.22)} ${r2(base - 64)}, ${r2(width * 0.48)} ${r2(base - 30)}, ${r2(width * 0.62)} ${r2(base - 46)} S ${r2(width * 0.9)} ${r2(base - 80)}, ${width} ${r2(base - 58)} L${width} ${height} L0 ${height} Z`;
   const style = animate ? `<style>
   .sails { transform-box: fill-box; transform-origin: center; animation: turn 32s linear infinite; }
   .wind { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; animation: blow linear infinite; }
-  .twinkle { animation: twinkle 6s ease-in-out infinite; }
   @keyframes turn { to { transform: rotate(-360deg); } }
   @keyframes blow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: var(--run); } }
-  @keyframes twinkle { 50% { fill-opacity: 0.1; } }
-  @media (prefers-reduced-motion: reduce) { .sails, .wind, .twinkle { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .sails, .wind { animation: none; } }
 </style>` : '<style>.wind { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; }</style>';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="Moulin">
 <title>Moulin</title>
 ${style}
-<defs>
-  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="0.62" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>
-  <radialGradient id="glow" cx="${hub[0]}" cy="${hub[1]}" r="${r2(height * 0.95)}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${night ? '#6F7FE0' : '#B4C2FF'}" stop-opacity="${night ? 0.28 : 0.42}"/><stop offset="1" stop-color="${night ? '#6F7FE0' : '#B4C2FF'}" stop-opacity="0"/></radialGradient>
-  <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${night ? '#0C1240' : '#1B30B5'}"/><stop offset="1" stop-color="${night ? '#070A26' : '#14249A'}"/></linearGradient>
-  <clipPath id="banner"><rect width="${width}" height="${height}" rx="${round}"/></clipPath>
-  <filter id="lift" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="${night ? '#000000' : '#0A1A8C'}" flood-opacity="${night ? 0.45 : 0.28}"/></filter>
-  ${night ? '<filter id="halo" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="9"/></filter>' : ''}
-</defs>
+<defs><clipPath id="banner"><rect width="${width}" height="${height}" rx="${round}"/></clipPath></defs>
 <g clip-path="url(#banner)">
-  <rect width="${width}" height="${height}" fill="url(#sky)"/>
-  <rect width="${width}" height="${height}" fill="url(#glow)"/>
-  ${night ? starsSvg({ width, height, avoid: [{ x: word.x - 16, y: word.y - word.size * 0.8, w: word.size * 2.9, h: word.size * 0.9 }] }) : ''}
-  ${windSvg({ width, height, opacity: night ? [0.16, 0.16, 0.16] : [0.3, 0.26, 0.22] })}
-  <path d="${far}" fill="${night ? '#141B55' : '#3552E6'}" fill-opacity="0.55"/>
-  <path d="${hill}" fill="url(#hill)"/>
-  <g transform="translate(${hub[0]} ${hub[1]}) scale(${scale})" filter="url(#lift)">${millSvg({ id: night ? 'night' : 'day', height: tower, g: SAIL_FINE, gap: 10, colors: mill, sailColor: mill.white, hole })}</g>
-  ${night ? `<circle cx="${hub[0]}" cy="${hub[1]}" r="${r2(20 * scale)}" fill="${C.signal}" filter="url(#halo)" opacity="0.9"/>` : ''}
-  ${wordmark({ ...word, color: night ? '#F1F3FF' : C.white })}
+  <rect width="${width}" height="${height}" fill="${C.green}"/>
+  ${windSvg({ width, height, opacity: [0.2, 0.16, 0.14] })}
+  <path d="${hill}" fill="${C.greenDeep}"/>
+  <g transform="translate(${hub[0]} ${hub[1]}) scale(${scale})">${millSvg({ id: 'banner', height: tower, g: SAIL_FINE, gap: 10 })}</g>
+  ${wordmark(word)}
 </g>
-</svg>`;
-}
-
-// The wordmark alone, white with the red dot, for dark or colored backgrounds.
-export function wordmarkSvg({ color = C.white } = {}) {
-  const { box, dot, d } = WORDMARK;
-  const vb = [box.x1 - 4, box.y1 - 6, box.x2 - box.x1 + 8, box.y2 - box.y1 + 12].join(' ');
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}"><path d="${d}" fill="${color}"/><circle cx="${dot.cx}" cy="${dot.cy}" r="${dot.r}" fill="${C.signal}"/></svg>`;
-}
-
-// The header of the settings window (560 x 138): the sky, and the mill at the right. The sails turn very slowly.
-export function settingsHeaderSvg({ night = false, width = 560, height = 138 } = {}) {
-  const sky = night ? [C.nightTop, C.night, C.nightBottom] : [C.skyTop, C.sky, C.skyBottom];
-  const hub = [452, 58];
-  const scale = 0.14;
-  const base = height - 12;
-  const mill = night ? { ...C, tower: '#AEB8E6', white: '#E4E9FF' } : C;
-  const hill = `M0 ${height} L0 ${base + 6} C 180 ${base + 2}, 330 ${base - 6}, ${hub[0]} ${base - 4} S ${width - 20} ${base + 2}, ${width} ${base + 6} L${width} ${height} Z`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" preserveAspectRatio="xMaxYMid slice">
-<style>
-  .sails { transform-box: fill-box; transform-origin: center; animation: turn 60s linear infinite; }
-  @keyframes turn { to { transform: rotate(-360deg); } }
-  @media (prefers-reduced-motion: reduce) { .sails { animation: none; } }
-</style>
-<defs>
-  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="0.62" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>
-  <radialGradient id="glow" cx="${hub[0]}" cy="${hub[1]}" r="220" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${night ? '#6F7FE0' : '#B4C2FF'}" stop-opacity="${night ? 0.3 : 0.45}"/><stop offset="1" stop-color="${night ? '#6F7FE0' : '#B4C2FF'}" stop-opacity="0"/></radialGradient>
-</defs>
-<rect width="${width}" height="${height}" fill="url(#sky)"/>
-<rect width="${width}" height="${height}" fill="url(#glow)"/>
-${night ? starsSvg({ width, height, count: 22, seed: 11, avoid: [{ x: 0, y: 0, w: 300, h: height }] }) : ''}
-<g transform="translate(${hub[0]} ${hub[1]}) scale(${scale})">${millSvg({ id: night ? 'night' : 'day', height: (base + 4 - hub[1]) / scale - 30, g: SAIL_FINE, gap: 14, colors: mill, sailColor: mill.white, hole: night ? '#151C55' : C.sky })}</g>
-<path d="${hill}" fill="${night ? '#0A0F38' : '#1B30B5'}"/>
 </svg>`;
 }
 
@@ -123,7 +73,7 @@ const RESET = 11.3; // the note goes back to the start
 function pill({ cx, cy, width, height = 50, body, cls }) {
   const x = r2(cx - width / 2);
   const y = r2(cy - height / 2);
-  return `<g class="${cls}"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${height / 2}" fill="#12163A" fill-opacity="0.94" filter="url(#pill-shadow)"/>`
+  return `<g class="${cls}"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${height / 2}" fill="#16201B" fill-opacity="0.94" filter="url(#pill-shadow)"/>`
     + `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="${(height - 1) / 2}" fill="none" stroke="#fff" stroke-opacity="0.12"/>${body(x, y)}</g>`;
 }
 
@@ -157,8 +107,8 @@ export function demoSvg() {
     body: () => `<path d="M${cx - 42} ${pillY + 0.5} l6 6 l12.5 -13" fill="none" stroke="#32D74B" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`
       + `<text class="label" x="${cx - 12}" y="${pillY + 5.5}">Pasted</text>`,
   });
-  const key = (cls) => `<g class="key ${cls}"><rect x="806" y="438" width="74" height="66" rx="13" fill="#1C2250" fill-opacity="0.35"/><g class="cap">`
-    + `<rect x="806" y="432" width="74" height="66" rx="13" fill="url(#key)" stroke="#C9CEE4"/>`
+  const key = (cls) => `<g class="key ${cls}"><rect x="806" y="438" width="74" height="66" rx="13" fill="#07120E" fill-opacity="0.4"/><g class="cap">`
+    + `<rect x="806" y="432" width="74" height="66" rx="13" fill="url(#key)" stroke="#C9D2CC"/>`
     + `<text x="843" y="472" text-anchor="middle" class="keylabel">F5</text></g></g>`;
   const text = (y, s, cls = '') => `<text x="214" y="${y}" class="body ${cls}">${s}</text>`;
 
@@ -171,7 +121,7 @@ export function demoSvg() {
   .wtitle { font-size: 14px; font-weight: 600; fill: #3A3A40; }
   .date { font-size: 13px; fill: #8A8A93; }
   .body { font-size: 17.5px; fill: #1D1D22; }
-  .caret { fill: #2F5BFF; animation: blink 1.06s steps(1) infinite; }
+  .caret { fill: ${C.green}; animation: blink 1.06s steps(1) infinite; }
   .label { font-size: 16px; font-weight: 600; fill: #fff; }
   .tick { font-size: 16px; font-weight: 600; fill: #fff; fill-opacity: 0.66; font-variant-numeric: tabular-nums; }
   .keylabel { font-size: 21px; font-weight: 600; fill: #1C1C22; }
@@ -211,19 +161,17 @@ export function demoSvg() {
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
 <defs>
-  <linearGradient id="wall" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="${C.skyTop}"/><stop offset="0.6" stop-color="${C.sky}"/><stop offset="1" stop-color="${C.skyBottom}"/></linearGradient>
-  <radialGradient id="wall-glow" cx="0.72" cy="0.18" r="0.8"><stop offset="0" stop-color="#C3CEFF" stop-opacity="0.45"/><stop offset="1" stop-color="#C3CEFF" stop-opacity="0"/></radialGradient>
-  <linearGradient id="key" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECEEF6"/></linearGradient>
+  <linearGradient id="key" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECEFEC"/></linearGradient>
   <clipPath id="screen"><rect width="${W}" height="${H}" rx="20"/></clipPath>
-  <filter id="window-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#06104A" flood-opacity="0.38"/></filter>
-  <filter id="pill-shadow" x="-30%" y="-60%" width="160%" height="260%"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#030620" flood-opacity="0.4"/></filter>
+  <filter id="window-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#07120E" flood-opacity="0.4"/></filter>
+  <filter id="pill-shadow" x="-30%" y="-60%" width="160%" height="260%"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#050B08" flood-opacity="0.45"/></filter>
 </defs>
 <g clip-path="url(#screen)">
-  <rect width="${W}" height="${H}" fill="url(#wall)"/>
-  <rect width="${W}" height="${H}" fill="url(#wall-glow)"/>
+  <rect width="${W}" height="${H}" fill="${C.green}"/>
+  <path d="M0 ${H} L0 ${H - 46} C 300 ${H - 70}, 620 ${H - 78}, ${W} ${H - 56} L${W} ${H} Z" fill="${C.greenDeep}"/>
 
   <g class="menubar">
-    <rect width="${W}" height="32" fill="#08103F" fill-opacity="0.16"/>
+    <rect width="${W}" height="32" fill="#07120E" fill-opacity="0.2"/>
     <text x="24" y="21" class="menu app">Notes</text>
     <text x="84" y="21" class="menu">File</text><text x="124" y="21" class="menu">Edit</text><text x="164" y="21" class="menu">Format</text><text x="226" y="21" class="menu">View</text><text x="274" y="21" class="menu">Window</text>
     ${glyphAt({ x: 726, y: 6, size: 20, color: '#FFFFFF', id: 'menu-idle', cls: 'menu-idle' })}
@@ -244,7 +192,7 @@ export function demoSvg() {
   <text x="214" y="150" class="date">Wednesday, October 28</text>
   ${text(186, 'Release 2.4 is on the cluster. The build took 12 minutes,')}
   ${text(213, 'and the CI failed twice on a load balancer timeout.')}
-  <rect class="flash" x="204" y="234" width="556" height="66" rx="6" fill="#DCE4FF"/>
+  <rect class="flash" x="204" y="234" width="556" height="66" rx="6" fill="#DCEAE2"/>
   <g class="pasted">
     ${text(258, 'The error rate went from 4.5% to 0.8%. Can you check the')}
     <text x="214" y="285" class="body">logs in Grafana before the 3 pm meeting?<tspan class="caret" dx="1">|</tspan></text>

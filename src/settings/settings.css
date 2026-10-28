@@ -1,37 +1,37 @@
+/* A plain settings window in the style of the system. The green of the mark is the only accent. */
 :root {
   color-scheme: light dark;
-  --bg: #f4f5fa;
+  --bg: #f3f4f1;
   --card: #ffffff;
-  --text: #121634;
-  --muted: #5f6588;
-  --line: rgba(18, 22, 52, 0.1);
+  --text: #15201b;
+  --muted: #5e6a63;
+  --line: rgba(21, 32, 27, 0.1);
   --key-top: #ffffff;
-  --key-bottom: #eef0f7;
-  --accent: #2643dc;
+  --key-bottom: #eef1ed;
+  --accent: #23493b;
   --accent-text: #ffffff;
-  --ok: #34c759;
-  --warn: #ffb547;
-  --error: #ff6b6b;
-  --error-text: #c62828;
-  --caution: #fff4e2;
-  --header: url("../../assets/header-day.svg");
+  --ok: #2f9e5b;
+  --warn: #c76a00;
+  --error: #c62828;
+  --caution: #fbf3e4;
   font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0d1030;
-    --card: #161b45;
-    --text: #eef0ff;
-    --muted: #a3aad4;
+    --bg: #141a17;
+    --card: #1c2420;
+    --text: #e8eeea;
+    --muted: #9aa8a0;
     --line: rgba(255, 255, 255, 0.09);
-    --key-top: #222960;
-    --key-bottom: #1a2052;
-    --accent: #7f95ff;
-    --accent-text: #0a0e2a;
-    --error-text: #ff8a80;
-    --caution: #2a2440;
-    --header: url("../../assets/header-night.svg");
+    --key-top: #2a3430;
+    --key-bottom: #222b27;
+    --accent: #8cc4a8;
+    --accent-text: #10201a;
+    --ok: #5fd08e;
+    --warn: #ffb547;
+    --error: #ff7b72;
+    --caution: #2a261c;
   }
 }
 
@@ -46,42 +46,40 @@ html, body {
   color: var(--text);
 }
 
-/* The sky, with the mill at the right. The traffic lights of the window sit in the top left corner. */
+/* The traffic lights of the window sit above the header. */
 header {
-  height: 138px;
-  padding: 42px 24px 0;
-  background: var(--header) right center / cover no-repeat, #2643dc;
-  color: #fff;
-  -webkit-font-smoothing: antialiased;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 38px 24px 8px;
 }
 
 .drag { -webkit-app-region: drag; }
 
-h1 { margin: 0; line-height: 0; }
+.icon { width: 52px; height: 52px; }
 
-.wordmark { height: 36px; width: auto; }
+.title { flex: 1; }
 
-.tagline {
-  margin: 6px 0 0;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 13px;
-}
+h1 { display: flex; align-items: baseline; gap: 8px; margin: 0; line-height: 0; }
 
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 0 0;
-}
+.version { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; }
+
+h1 svg { height: 25px; width: auto; }
+
+.word-face { fill: var(--text); }
+
+.word-dot { fill: #ff3b30; }
+
+.title p { margin: 5px 0 0; color: var(--muted); }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px 3px 8px;
+  padding: 4px 10px 4px 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--line);
   font-size: 12px;
   font-weight: 600;
 }
@@ -100,18 +98,12 @@ h1 { margin: 0; line-height: 0; }
 .badge[data-kind="warn"]::before { background: var(--warn); }
 .badge[data-kind="error"]::before { background: var(--error); }
 
-.version {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-main { padding: 10px 24px 18px; }
+main { padding: 6px 24px 20px; }
 
 .status { margin: 0 4px 4px; color: var(--muted); min-height: 1.4em; }
 
 h2 {
-  margin: 14px 4px 6px;
+  margin: 16px 4px 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
@@ -119,8 +111,8 @@ h2 {
 
 section {
   background: var(--card);
-  border-radius: 12px;
-  box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(18, 22, 52, 0.04);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .row {
@@ -143,14 +135,14 @@ label.row { cursor: pointer; }
 
 .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
 
-.error { margin: 0; padding: 0 14px 10px; color: var(--error-text); font-size: 12px; }
+.error { margin: 0; padding: 0 14px 10px; color: var(--error); font-size: 12px; }
 
 button, select {
   font: inherit;
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   padding: 5px 12px;
 }
 
@@ -179,9 +171,8 @@ select { max-width: 260px; }
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   background: linear-gradient(var(--key-top), var(--key-bottom));
-  border-color: var(--line);
   border-bottom-width: 2px;
-  box-shadow: 0 1px 2px rgba(18, 22, 52, 0.08);
+  box-shadow: 0 1px 1px rgba(21, 32, 27, 0.06);
 }
 
 .key.capturing { border-color: var(--accent); color: var(--accent); }
@@ -217,9 +208,9 @@ select { max-width: 260px; }
 .switch:checked::after { transform: translateX(16px); }
 
 .note {
-  margin: 14px 0 0;
+  margin: 18px 0 0;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--caution);
   color: var(--muted);
   font-size: 11.5px;

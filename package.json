@@ -63,7 +63,8 @@
         "LSUIElement": true,
         "NSMicrophoneUsageDescription": "Moulin records your voice while you dictate.",
         "NSAppleEventsUsageDescription": "Moulin pastes the text at the cursor with System Events."
-      }
+      },
+      "artifactName": "${productName}-mac-${arch}.${ext}"
     },
     "dmg": {
       "title": "Moulin"
@@ -83,7 +84,8 @@
       "oneClick": true,
       "perMachine": false,
       "runAfterFinish": true,
-      "shortcutName": "Moulin"
+      "shortcutName": "Moulin",
+      "artifactName": "${productName}-windows-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -96,7 +98,8 @@
       ],
       "category": "Utility",
       "icon": "build/icon.png",
-      "synopsis": "Dictation with the speech-to-text of ChatGPT"
+      "synopsis": "Dictation with the speech-to-text of ChatGPT",
+      "artifactName": "${productName}-linux-x86_64.${ext}"
     }
   },
   "devDependencies": {

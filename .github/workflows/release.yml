@@ -1,0 +1,70 @@
+# Builds Moulin for macOS, Windows, and Linux, and publishes a GitHub release for a version tag.
+# To release: set "version" in package.json, commit, then run "git tag v1.2.3 && git push origin v1.2.3".
+# A manual run (workflow_dispatch) builds the three systems but publishes nothing.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: --mac
+          - os: windows-latest
+            target: --win
+          - os: ubuntu-latest
+            target: --linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npx electron-builder ${{ matrix.target }} --publish never
+      - uses: actions/upload-artifact@v7
+        with:
+          name: moulin-${{ runner.os }}
+          path: |
+            dist/Moulin-*.dmg
+            dist/Moulin-*.zip
+            dist/Moulin-*.exe
+            dist/Moulin-*.AppImage
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'EOF'
+          ## Install
+
+          - macOS (Apple silicon): run `curl -fsSL https://brohoya.github.io/moulin/install.sh | sh`. Or open the dmg and drag Moulin to Applications. Apple did not notarize Moulin, so after a download in the browser, open System Settings > Privacy & Security and click Open Anyway.
+          - Windows: run the exe. SmartScreen warns at the first start: click More info, then Run anyway.
+          - Linux (x86_64): run the same command as on macOS. Or make the AppImage executable and start it. It needs libfuse2.
+
+          Then sign in to ChatGPT in the Moulin window, and push F5.
+
+          **Caution:** Moulin automates the ChatGPT web app. The OpenAI Terms of Use do not allow this, so OpenAI can warn or suspend an account. For one person with a normal use, the risk is low, but it is not zero.
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Moulin ${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes
