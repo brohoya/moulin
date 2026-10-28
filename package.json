@@ -16,7 +16,9 @@
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "signing:setup": "sh scripts/signing-setup.sh",
+    "reinstall": "sh scripts/reinstall-mac.sh"
   },
   "build": {
     "appId": "app.moulin",

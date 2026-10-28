@@ -10,7 +10,7 @@ Moulin works on macOS, Windows, and Linux. Only the macOS build is tested.
 
 ## Install
 
-- macOS: run `npm run dist:mac`, then copy `dist/mac-arm64/Moulin.app` to `~/Applications` (or open `dist/Moulin-1.0.0-arm64.dmg`). The build has an ad-hoc signature, so it opens only on the Mac that built it.
+- macOS: run `npm run signing:setup` one time, then `npm run reinstall`. The second command builds the app (about 25 seconds), signs it with a local certificate, replaces `~/Applications/Moulin.app`, and starts it. macOS ties the permissions to the bundle ID and the certificate, so it keeps them after each reinstall. `npm run dist:mac` makes a dmg and a zip with an ad-hoc signature instead: after an install of such a build, macOS asks for the permissions again.
 - Windows: run `dist/Moulin Setup 1.0.0.exe` (built with `npm run dist:win`). The installer has no signature, so SmartScreen warns on the first run: click "More info", then "Run anyway". Moulin shows in the notification area. Windows can hide it behind the arrow (^).
 - Linux: run `chmod +x Moulin-1.0.0.AppImage`, then start it (built with `npm run dist:linux`). The AppImage needs `libfuse2`. If it does not start on Ubuntu 24.04 (AppArmor blocks the Chromium sandbox), start it with `--no-sandbox`. The icon shows in the top bar on KDE and Ubuntu. On other GNOME desktops, install the "AppIndicator and KStatusNotifierItem Support" extension. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland).
 
@@ -66,6 +66,8 @@ The packaged app turns off the Electron fuses `RunAsNode`, `NODE_OPTIONS`, and t
 | `npm run e2e` | The E2E test in the installed (or built) app. It quits a running Moulin and starts it again after. |
 | `npm run e2e:dev` | The same test from the sources. |
 | `npm run dist:mac`, `dist:win`, `dist:linux` | Builds the installers in `dist/`. |
+| `npm run reinstall` | macOS: builds the app, signs it with the local certificate, replaces `~/Applications/Moulin.app`, and starts it. If the signature identity changed, it removes the old permissions, so that macOS asks again with clean entries. |
+| `npm run signing:setup` | macOS, one time: creates the local signing certificate in `~/Library/Keychains/moulin-signing.keychain-db`. The login keychain keeps only the password of that keychain. |
 | `npm run capture` | Shows the ChatGPT window. Do one dictation with the button of the page. It writes `artifacts/capture-<time>.json` with names and shapes only. |
 | `npm run icons` | Makes the icons from the shapes in [scripts/make-icons.mjs](scripts/make-icons.mjs). |
 | `npm run sample` | Makes `fixtures/fr-sample.wav` (48 kHz, mono, 16-bit) from `fixtures/fr-sample.txt` with `say` and ffmpeg. |
@@ -131,6 +133,6 @@ Moulin sends the same constant values for `originator`, `x-openai-web-frontend`,
 - On Windows, the paste starts PowerShell for each dictation (about half a second), and it cannot paste into apps that run as administrator.
 - The E2E test uses the fake microphone. The real microphone and the paste are not tested automatically.
 - Push-to-talk (hold the key) is not possible with the Electron shortcut API, which has no key-up event.
-- The macOS build has an ad-hoc signature. After a rebuild, macOS can ask for the microphone and Accessibility permissions again.
+- The local signing key works only on this Mac. A program that runs as you can use it to sign an app that macOS treats as Moulin, with its permissions. To give Moulin to other people, sign it with an Apple Developer ID certificate and notarize it: that is the standard way to keep the permissions across updates on every Mac.
 - The usage errors, the expired session, and the fallback to the full page after a Cloudflare 403 are not tested against the server.
 - `sec-ch-ua` has no "Google Chrome" brand, so it is different from a real Chrome. Cloudflare did not challenge it.
