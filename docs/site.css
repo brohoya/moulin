@@ -3,6 +3,8 @@
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+/* Only the letters of the pronunciation, in the notation of French dictionaries. */
+@font-face { font-family: "EB Garamond IPA"; src: url("fonts/EBGaramond-IPA.woff2") format("woff2"); font-display: swap; }
 
 :root {
   color-scheme: light dark;
@@ -155,49 +157,69 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .word-dot { fill: var(--signal); }
 
 .definition { margin-top: 14px; font-size: 17px; color: var(--text-2); }
+.definition .ipa { font-family: "EB Garamond IPA", var(--serif); font-size: 1.05em; color: var(--text-3); }
 
 .tagline {
   max-width: 21em;
   margin-top: clamp(26px, 4vh, 40px);
-  font-size: clamp(24px, 2.1vw, 30px);
-  line-height: 1.25;
+  font-size: clamp(23px, 2vw, 28px);
+  line-height: 1.3;
 }
 
-.why { max-width: 30em; margin-top: 14px; color: var(--text-2); }
+/* ---------- Install: one tab for each system. ---------- */
 
-.downloads {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: clamp(26px, 4vh, 36px);
+.install { max-width: 620px; margin-top: clamp(28px, 4.5vh, 40px); }
+
+.tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--well);
 }
 
-/* The button of the visitor's system is white. The two others are outlines. */
+.tab {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font: 500 15px/1 var(--serif);
+  cursor: pointer;
+}
+
+.tab:hover { color: #fff; }
+.tab[aria-selected="true"] { background: rgb(255 255 255 / 0.16); color: #fff; }
+
+.panel { margin-top: 16px; }
+
+html:not(.js) .tabs { display: none; }
+html:not(.js) .panel[hidden] { display: block; }
+html:not(.js) .panel::before { content: attr(data-name); display: block; margin: 18px 0 8px; font-weight: 500; }
+
 .download {
   display: inline-flex;
   align-items: center;
   gap: 9px;
   min-height: 48px;
-  padding: 0 22px;
-  border: 1px solid rgb(255 255 255 / 0.45);
+  padding: 0 24px;
   border-radius: 999px;
-  color: #fff;
+  background: #fff;
+  color: var(--green);
   font-weight: 500;
   text-decoration: none;
 }
 
 .download svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.download:hover { background: #E6ECE4; text-decoration: none; }
 
-.download:hover { border-color: #fff; text-decoration: none; }
-.download.primary { border-color: #fff; background: #fff; color: var(--green); }
-.download.primary:hover { background: #E6ECE4; }
+.alt { margin-top: 16px; font-size: 14px; color: var(--text-3); }
 
 .command {
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 620px;
-  margin-top: 12px;
+  margin-top: 8px;
   padding: 6px 6px 6px 14px;
   border-radius: 14px;
   background: var(--well);
@@ -227,19 +249,17 @@ code { font-family: var(--mono); font-size: 0.86em; }
 
 .command .copy:hover { background: rgb(255 255 255 / 0.2); }
 
-/* The caution and the credits, at the bottom of the page. */
-.fine {
+.caution { max-width: 36em; margin-top: clamp(28px, 5vh, 44px); font-size: 13.5px; line-height: 1.5; color: var(--text-3); }
+.caution strong { font-weight: 500; color: var(--text-2); }
+
+/* The credits, alone at the bottom of the page. */
+.footer {
   position: relative;
   z-index: 1;
-  max-width: calc(620px + 2 * var(--gutter));
-  padding: 0 var(--gutter) 26px;
-  font-size: 13.5px;
-  line-height: 1.5;
+  padding: 56px var(--gutter) 24px;
+  font-size: 13px;
   color: var(--text-3);
 }
-
-.fine p + p { margin-top: 6px; }
-.fine strong { font-weight: 500; color: var(--text-2); }
 
 /* ---------- The stacked page: the mill above, the words below. Keep this query equal to "stacked" in site.js. ---------- */
 
@@ -255,8 +275,7 @@ code { font-family: var(--mono); font-size: 0.86em; }
   .listen span { display: none; }
   .listen { padding: 0 10px; }
   .listen-note { left: var(--gutter); text-align: left; }
-  .downloads { gap: 8px; }
-  .download { gap: 7px; padding: 0 14px; font-size: 16px; }
+  .tab { padding: 8px 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

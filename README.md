@@ -33,7 +33,14 @@ Push Esc to cancel a dictation. The windmill in the menu bar is red while Moulin
 
 ## Help
 
-- F5 does nothing: on Apple keyboards, F5 can start the dictation of macOS. Push fn+F5, or choose another key in the settings.
+- The microphone key (F5) opens the dictation of macOS, also when Dictation is off. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org) and add the Moulin rule, which changes this key into F13:
+
+  ```sh
+  brew install --cask karabiner-elements
+  open "karabiner://karabiner/assets/complex_modifications/import?url=https%3A%2F%2Fbrohoya.github.io%2Fmoulin%2Fkarabiner.json"
+  ```
+
+  In Karabiner-Elements, click Import, then Enable. Then click the shortcut in the Moulin settings and push the key: the settings show F13.
 - No windmill in the menu bar (macOS 26): turn on Moulin in System Settings > Menu Bar > "Allow in the Menu Bar".
 - Windows can hide the windmill behind the arrow (^) of the notification area.
 - Linux: the AppImage needs `libfuse2`. On Ubuntu 24.04, start it with `--no-sandbox`. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland). On a GNOME desktop other than Ubuntu, install the "AppIndicator and KStatusNotifierItem Support" extension to see the windmill.

@@ -36,7 +36,7 @@ body {
   box-shadow: 0 3px 9px rgba(4, 10, 7, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   color: #fff;
   cursor: default;
-  transition: opacity 0.18s ease, transform 0.28s var(--ease), width 0.28s var(--ease);
+  transition: opacity 0.18s ease, transform 0.28s var(--ease), width 0.28s var(--ease), box-shadow 0.18s ease;
 }
 
 .pill[data-state="hidden"] {
@@ -109,7 +109,7 @@ body {
   border-radius: 1.5px;
   background: rgba(255, 255, 255, 0.9);
   transform: scaleY(0.12);
-  transition: transform 70ms linear;
+  transition: transform 70ms linear, background-color 0.18s ease;
 }
 
 .time {
@@ -117,11 +117,29 @@ body {
   min-width: 2.4em;
   color: rgba(255, 255, 255, 0.62);
   font-variant-numeric: tabular-nums;
+  transition: color 0.18s ease;
 }
 
 [data-state="recording"] .bars,
 [data-state="recording"] .time {
   display: flex;
+}
+
+/* A click on the pill stops the dictation. On hover, the pill turns red to show it. */
+.pill[data-state="recording"] {
+  cursor: pointer;
+}
+
+.pill[data-state="recording"]:hover {
+  box-shadow: 0 3px 9px rgba(4, 10, 7, 0.4), inset 0 0 0 1.5px var(--signal);
+}
+
+.pill[data-state="recording"]:hover .bars i {
+  background: var(--signal);
+}
+
+.pill[data-state="recording"]:hover .time {
+  color: var(--signal);
 }
 
 .text {

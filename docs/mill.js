@@ -146,8 +146,8 @@ export function glyphInner({ id = 'glyph', angle = 45, color = '#000' } = {}) {
     // No gap near the hub: the turning gaps would cut small, still pieces out of the cap and the top of the tower.
     + '<circle cx="16" cy="12.2" r="4.6" fill="#fff"/></mask></defs>'
     + `<g fill="${color}"><g mask="url(#${id}-gap)">`
-    + '<path fill-rule="evenodd" d="M13.5 14.2 H18.5 L21.3 29.6 H10.7 Z M14.75 29.6 V26.4 A1.25 1.25 0 0 1 17.25 26.4 V29.6 Z"/>'
-    + '<path d="M12.9 15.2 C 12.9 10.8, 19.1 10.8, 19.1 15.2 Z"/></g>'
+    // No cap at this size: its two sides showed as still dots next to the hub while the sails turned.
+    + '<path fill-rule="evenodd" d="M14.1 13.6 H17.9 L21.3 29.6 H10.7 Z M14.75 29.6 V26.4 A1.25 1.25 0 0 1 17.25 26.4 V29.6 Z"/></g>'
     + `<g class="sails">${sails}</g><circle cx="16" cy="12.2" r="1.9"/></g>`;
 }
 

@@ -248,6 +248,19 @@ function toggle() {
   else startRecording();
 }
 
+// macOS: a click on the pop-up makes Moulin the active app, also with focusable false, so the paste would go to Moulin.
+// When Moulin hides, macOS gives the front back to the previous app. Then the pop-up shows again without activation.
+async function stopFromClick() {
+  const settingsFocused = settingsWin && !settingsWin.isDestroyed() && settingsWin.isFocused();
+  if (IS_MAC && !settingsFocused) {
+    app.hide();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    if (state !== 'recording') return; // Esc or the time limit stopped the dictation during the wait.
+    if (pageOf(overlay)) overlay.showInactive();
+  }
+  stopRecording();
+}
+
 // macOS needs the Accessibility permission to paste. Without it, the text stays in the clipboard.
 async function pasteText() {
   if (IS_MAC && !systemPreferences.isTrustedAccessibilityClient(false)) {
@@ -417,7 +430,7 @@ function listenToPages() {
     events.emit('audio', pending);
     transcribe();
   });
-  ipcMain.on('overlay:clicked', (e) => { if (fromOverlay(e) && state === 'recording') stopRecording(); });
+  ipcMain.on('overlay:clicked', (e) => { if (fromOverlay(e) && state === 'recording') stopFromClick(); });
 
   ipcMain.handle('settings:get', (e) => (fromSettings(e) ? snapshot() : null));
   ipcMain.handle('settings:set', (e, patch) => {

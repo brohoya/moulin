@@ -2,6 +2,7 @@
 // scripts/make-icons.mjs writes them to docs/media. The animations are CSS in the SVG files, so they also play in a README.
 import { COLORS, SAIL_FINE, glyphInner, iconSvg, millSvg, windSvg } from '../docs/mill.js';
 import { WORDMARK } from '../docs/wordmark.js';
+import { DEFINITION } from './definition.mjs';
 
 const C = COLORS;
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -12,8 +13,19 @@ function wordmark({ x, y, size, color = C.white, dot = C.signal }) {
   return `<g transform="translate(${x} ${y}) scale(${r2(size / 1000)})"><path d="${d}" fill="${color}"/><circle cx="${o.cx}" cy="${o.cy}" r="${o.r}" fill="${dot}"/></g>`;
 }
 
-// A wide banner in flat colors: the mill on a hill at the right, the wordmark at the left. Used for the README and the social card.
-export function heroSvg({ width = 1280, height = 560, hub = [904, 274], scale = 0.74, word = { x: 96, y: 332, size: 180 }, round = 28, animate = true } = {}) {
+// The definition under the wordmark, in two lines: "moulin à paroles [mulɛ̃ a paʀɔl]" and the meaning. size is the font size.
+function definition({ x, y, size }) {
+  const { phrase, ipa, meaning } = DEFINITION;
+  const k = r2(size / 100);
+  return `<g transform="translate(${x} ${y}) scale(${k})">`
+    + `<path transform="translate(0 ${-phrase.baseline})" d="${phrase.d}" fill="#fff" fill-opacity="0.92"/>`
+    + `<path transform="translate(${r2(phrase.width + 30)} ${-ipa.baseline})" d="${ipa.d}" fill="#fff" fill-opacity="0.62"/>`
+    + `<path transform="translate(0 ${150 - meaning.baseline})" d="${meaning.d}" fill="#fff" fill-opacity="0.78"/></g>`;
+}
+
+// A wide banner in flat colors: the mill on a hill at the right, the wordmark and its definition at the left.
+// Used for the README and the social card.
+export function heroSvg({ width = 1280, height = 560, hub = [904, 274], scale = 0.74, word = { x: 96, y: 306, size: 180 }, defSize = 24, round = 28, animate = true } = {}) {
   const base = height - 30;
   const tower = r2((base - hub[1]) / scale - 30);
   const hill = `M0 ${height} L0 ${r2(base + 22)} C ${r2(width * 0.3)} ${r2(base + 10)}, ${r2(hub[0] - 300)} ${r2(base - 4)}, ${hub[0]} ${r2(base - 2)} S ${r2(width - 40)} ${r2(base + 6)}, ${width} ${r2(base + 12)} L${width} ${height} Z`;
@@ -34,12 +46,13 @@ ${style}
   <path d="${hill}" fill="${C.greenDeep}"/>
   <g transform="translate(${hub[0]} ${hub[1]}) scale(${scale})">${millSvg({ id: 'banner', height: tower, g: SAIL_FINE, gap: 10 })}</g>
   ${wordmark(word)}
+  ${definition({ x: r2(word.x + 0.034 * word.size), y: r2(word.y + defSize * 2.3), size: defSize })}
 </g>
 </svg>`;
 }
 
 // The social card for GitHub and for link previews (1280 x 640).
-export const socialSvg = () => heroSvg({ width: 1280, height: 640, hub: [900, 304], scale: 0.8, word: { x: 100, y: 372, size: 184 }, round: 0, animate: false });
+export const socialSvg = () => heroSvg({ width: 1280, height: 640, hub: [900, 304], scale: 0.8, word: { x: 100, y: 344, size: 184 }, defSize: 26, round: 0, animate: false });
 
 // The favicon: the icon without its margin. square: a full square for the iOS home screen, which cuts its own shape.
 export function faviconSvg({ square = false } = {}) {

@@ -1,6 +1,6 @@
 // The website: one screen. The sails turn in a light wind, and a drag with the mouse turns them faster.
 // With the visitor's permission, the loudness of the microphone turns them and fills the bars of the sails.
-// Below the words: the downloads, and the install command.
+// Below the words: one tab for each system, with its download.
 import { SAIL_FINE, VOICE, barRect, millSvg, sailsSvg, towerParts, windSvg } from './mill.js';
 import { WORDMARK } from './wordmark.js';
 
@@ -54,8 +54,8 @@ function layout() {
   const W = Math.round(box.width);
   const H = Math.round(box.height);
   const wordTop = w.top - box.top;
-  // The right edge of the text. The sails may pass behind the wordmark, but not behind the text and the downloads.
-  const right = Math.max(...[...words.querySelectorAll('.definition, .tagline, .why, .downloads, .command')].map((el) => el.getBoundingClientRect().right)) - box.left;
+  // The right edge of the text. The sails may pass behind the wordmark, but not behind the text and the tabs.
+  const right = Math.max(...[...words.querySelectorAll('.definition, .tagline, .install, .caution')].map((el) => el.getBoundingClientRect().right)) - box.left;
   const wide = !stacked.matches;
   let R;
   let hub;
@@ -290,12 +290,35 @@ document.addEventListener('visibilitychange', () => {
   wake();
 });
 
-// ---------- Downloads: the button of the visitor's system is white, and the install command has a copy button. ----------
+// ---------- Install: one tab for each system, and a copy button for each command. ----------
 
-// A phone gets the macOS button.
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+
+function select(tab, focus = false) {
+  for (const item of tabs) {
+    const on = item === tab;
+    item.setAttribute('aria-selected', String(on));
+    item.tabIndex = on ? 0 : -1;
+    document.getElementById(item.getAttribute('aria-controls')).hidden = !on;
+  }
+  if (focus) tab.focus();
+  build(); // The text can change height, and the mill follows it.
+}
+
+tabs.forEach((tab, i) => {
+  tab.addEventListener('click', () => select(tab));
+  tab.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    select(tabs[(i + step + tabs.length) % tabs.length], true);
+  });
+});
+
+// The tab of the visitor's system comes first. A phone gets the macOS tab.
 const system = `${navigator.userAgentData?.platform || ''} ${navigator.userAgent}`;
 const os = /windows/i.test(system) ? 'windows' : /linux|x11/i.test(system) && !/android/i.test(system) ? 'linux' : 'macos';
-document.getElementById(`get-${os}`).classList.add('primary');
+select(document.getElementById(`tab-${os}`));
 
 for (const button of document.querySelectorAll('.command .copy')) {
   button.addEventListener('click', async () => {

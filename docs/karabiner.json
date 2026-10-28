@@ -1,0 +1,12 @@
+{
+  "title": "Moulin",
+  "rules": [
+    {
+      "description": "Change the microphone key to F13.",
+      "manipulators": [
+        { "type": "basic", "from": { "consumer_key_code": "dictation" }, "to": [{ "key_code": "f13" }] },
+        { "type": "basic", "from": { "key_code": "f5" }, "to": [{ "key_code": "f13" }] }
+      ]
+    }
+  ]
+}
