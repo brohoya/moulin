@@ -1,7 +1,7 @@
 <h1 align="center"><img src="docs/media/banner.svg" alt="Moulin"></h1>
 
 <p align="center">Speech-to-text in any app, with your ChatGPT subscription.<br>
-<a href="https://brohoya.github.io/moulin/">Website</a> &amp;nbsp; <a href="https://github.com/brohoya/moulin/releases/latest">Download</a></p>
+<a href="https://brohoya.github.io/moulin/">Website</a>    <a href="https://github.com/brohoya/moulin/releases/latest">Download</a></p>
 
 <p align="center"><img src="docs/media/demo.svg" alt="A note on a Mac. The user pushes F5, a dark pop-up shows the recording, the user pushes F5 again, and the sentence appears at the cursor."></p>
 
