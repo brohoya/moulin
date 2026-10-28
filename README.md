@@ -34,14 +34,15 @@ Push Esc to cancel a dictation. The windmill in the menu bar is red while Moulin
 ## Help
 
 - If you want to make the  native dictation button F5 useful for the first time in history (because it opens the macOS dictation even after disabling it in settings):
-  1. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org)
-  2. Add the Moulin rule, which changes this key into F13:
-     ```sh
-     brew install --cask karabiner-elements
-     open "karabiner://karabiner/assets/complex_modifications/import?url=https%3A%2F%2Fbrohoya.github.io%2Fmoulin%2Fkarabiner.json"
-     ```
-  
-     In Karabiner-Elements, click Import, then Enable. Then click the shortcut in the Moulin settings and push the key: the settings show F13.
+1. Install [Karabiner-Elements](https://karabiner-elements.pqrs.org)
+2. Add the Moulin rule, which changes this key into F13:
+
+```sh
+brew install --cask karabiner-elements
+open "karabiner://karabiner/assets/complex_modifications/import?url=https%3A%2F%2Fbrohoya.github.io%2Fmoulin%2Fkarabiner.json"
+```
+
+In Karabiner-Elements, click Import, then Enable. Then click the shortcut in the Moulin settings and push the key: the settings show F13.
 - Linux: the AppImage needs `libfuse2`. On Ubuntu 24.04, start it with `--no-sandbox`. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland). On a GNOME desktop other than Ubuntu, install the "AppIndicator and KStatusNotifierItem Support" extension to see the windmill.
 
 ## Terms of Use and risk
