@@ -1,11 +1,8 @@
 <h1 align="center"><img src="docs/media/banner.svg" alt="Moulin"></h1>
 
-<p align="center">Speech-to-text in any app, with your ChatGPT subscription.<br>
-<a href="https://brohoya.github.io/moulin/">Website</a>    <a href="https://github.com/brohoya/moulin/releases/latest">Download</a></p>
+ChatGPT has the best multilingual speech-to-text models that I have tested, so pay their subscription if you want to use this tool (please OpenAI, don't sue me).
 
 <p align="center"><img src="docs/media/demo.svg" alt="A note on a Mac. The user pushes F5, a dark pop-up shows the recording, the user pushes F5 again, and the sentence appears at the cursor."></p>
-
-ChatGPT has the best multilingual speech-to-text models that I have tested, so pay their subscription if you want to use this tool (please OpenAI, don't sue me).
 
 ## Install
 
@@ -15,11 +12,7 @@ On macOS and Linux, run this command in a terminal. It installs Moulin and start
 curl -fsSL https://brohoya.github.io/moulin/install.sh | sh
 ```
 
-Or download Moulin for your computer:
-
-- [macOS](https://github.com/brohoya/moulin/releases/latest/download/Moulin-mac-arm64.dmg) (Apple silicon). Drag Moulin to Applications. At the first start, macOS blocks Moulin: open System Settings &gt; Privacy &amp; Security, and click Open Anyway.
-- [Windows](https://github.com/brohoya/moulin/releases/latest/download/Moulin-windows-x64.exe). If Windows warns about an unknown app, click "More info", then "Run anyway".
-- [Linux](https://github.com/brohoya/moulin/releases/latest/download/Moulin-linux-x86_64.AppImage) (x86_64). Make the file executable, then start it.
+Or download Moulin for your computer: <a href="https://github.com/brohoya/moulin/releases/latest">Download</a>
 
 Moulin is tested on macOS. The Windows and Linux versions are new.
 
