@@ -11,8 +11,17 @@ Moulin works on macOS, Windows, and Linux. Only the macOS build is tested.
 ## Install
 
 - macOS: run `npm run dist:mac`, then copy `dist/mac-arm64/Moulin.app` to `~/Applications` (or open `dist/Moulin-1.0.0-arm64.dmg`). The build has an ad-hoc signature, so it opens only on the Mac that built it.
-- Windows: run `dist/Moulin Setup 1.0.0.exe` (built with `npm run dist:win`). Moulin shows in the notification area. Windows can hide it behind the arrow (^).
-- Linux: run `chmod +x Moulin-1.0.0.AppImage`, then start it (built with `npm run dist:linux`). The icon shows in the top bar on KDE and Ubuntu. On other GNOME desktops, install the "AppIndicator and KStatusNotifierItem Support" extension. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland).
+- Windows: run `dist/Moulin Setup 1.0.0.exe` (built with `npm run dist:win`). The installer has no signature, so SmartScreen warns on the first run: click "More info", then "Run anyway". Moulin shows in the notification area. Windows can hide it behind the arrow (^).
+- Linux: run `chmod +x Moulin-1.0.0.AppImage`, then start it (built with `npm run dist:linux`). The AppImage needs `libfuse2`. If it does not start on Ubuntu 24.04 (AppArmor blocks the Chromium sandbox), start it with `--no-sandbox`. The icon shows in the top bar on KDE and Ubuntu. On other GNOME desktops, install the "AppIndicator and KStatusNotifierItem Support" extension. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland).
+
+### Linux with Wayland
+
+Wayland lets an app use a global shortcut only through the desktop portal (KDE, GNOME 48 or later, Hyprland). On other desktops, or if the shortcut does not work:
+
+1. In the system settings (GNOME: Keyboard > Custom Shortcuts, KDE: Shortcuts > Add New > Command), add a shortcut that runs `/path/to/Moulin-1.0.0.AppImage --toggle`.
+2. In the Moulin settings, click the shortcut and push Backspace, so that Moulin has no shortcut of its own.
+
+On Wayland, the desktop can also put the pop-up in another place than the bottom of the screen, and GNOME can refuse the clipboard to a background app. Most Linux terminals paste with Ctrl+Shift+V, so the automatic Ctrl+V does not paste there.
 
 ## Use
 
@@ -25,6 +34,7 @@ On the first launch, Moulin opens its settings window and asks for permissions:
 Then:
 
 - Push the shortcut (F5) to start and to stop a dictation. Push Esc during a dictation to cancel it. A click on the pop-up also stops the dictation.
+- `Moulin --toggle` also starts or stops a dictation, so a system shortcut can run it. If Moulin does not run yet, this command starts Moulin and the dictation. In the settings, Backspace in the shortcut field removes Moulin's own shortcut.
 - The menu bar icon shows the state: a windmill (ready), a red windmill (recording), turning sails (transcribing), or an amber windmill (problem).
 - The menu has the last five texts of the session ("Recent dictations"). If a transcription fails, "Send the last recording again" sends the same audio again.
 - Settings: the ChatGPT account (sign in or sign out), the shortcut, paste at the cursor, the microphone, start at login, and the pop-up.
@@ -60,7 +70,7 @@ The packaged app turns off the Electron fuses `RunAsNode`, `NODE_OPTIONS`, and t
 | `npm run icons` | Makes the icons from the shapes in [scripts/make-icons.mjs](scripts/make-icons.mjs). |
 | `npm run sample` | Makes `fixtures/fr-sample.wav` (48 kHz, mono, 16-bit) from `fixtures/fr-sample.txt` with `say` and ffmpeg. |
 
-The E2E test does one full dictation: shortcut start, shortcut stop, upload, clipboard. On macOS, `npm run e2e` starts the app with `open`, so that macOS does not put the menu bar icon in the group of the terminal app. The microphone is the sample WAV (Chromium fake device, `%noloop`). The test never pastes. It writes `artifacts/e2e-<time>.json` and the recording `artifacts/e2e-<time>.webm`. It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, the tray states, the pop-up states, and the silence after the end of the sample. It needs a signed-in session and ffmpeg, and it replaces the clipboard content. The test modes turn off the sandbox of the Chromium audio service (`--disable-features=AudioServiceSandbox`), because that sandbox blocks the read of the WAV file. The normal app keeps the sandbox.
+The E2E test does one full dictation: start, stop, upload, clipboard. A second Moulin process with `--toggle` starts and stops the dictation, the same path as a system shortcut. On macOS, `npm run e2e` starts the app with `open`, so that macOS does not put the menu bar icon in the group of the terminal app. The microphone is the sample WAV (Chromium fake device, `%noloop`). The test never pastes. It writes `artifacts/e2e-<time>.json` and the recording `artifacts/e2e-<time>.webm`. It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, the tray states, the pop-up states, and the silence after the end of the sample. It needs a signed-in session and ffmpeg, and it replaces the clipboard content. The test modes turn off the sandbox of the Chromium audio service (`--disable-features=AudioServiceSandbox`), because that sandbox blocks the read of the WAV file. The normal app keeps the sandbox.
 
 ## Results (October 2026)
 
@@ -117,7 +127,8 @@ Moulin sends the same constant values for `originator`, `x-openai-web-frontend`,
 
 ## What is open
 
-- The Windows and Linux builds are not tested.
+- The Windows and Linux builds are not tested. The Wayland behavior (portal, pop-up place, clipboard, paste tools) comes from the documentation of each desktop, not from a test.
+- On Windows, the paste starts PowerShell for each dictation (about half a second), and it cannot paste into apps that run as administrator.
 - The E2E test uses the fake microphone. The real microphone and the paste are not tested automatically.
 - Push-to-talk (hold the key) is not possible with the Electron shortcut API, which has no key-up event.
 - The macOS build has an ad-hoc signature. After a rebuild, macOS can ask for the microphone and Accessibility permissions again.

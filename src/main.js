@@ -11,8 +11,11 @@ const { paste } = require('./paste');
 
 const ROOT = path.join(__dirname, '..');
 const IS_MAC = process.platform === 'darwin';
+const WAYLAND = process.platform === 'linux' && process.env.XDG_SESSION_TYPE === 'wayland';
 const option = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const MODE = process.argv.includes('--e2e') ? 'e2e' : process.argv.includes('--capture') ? 'capture' : 'app';
+// "Moulin --toggle" starts or stops a dictation. A system shortcut can run it (for example on Wayland).
+const TOGGLE = process.argv.includes('--toggle');
 const SAMPLE = option('sample') || path.join(ROOT, 'fixtures', 'fr-sample.wav');
 const OUT_DIR = option('out') || path.join(ROOT, 'artifacts');
 const ICON = path.join(ROOT, 'assets', 'icon.png');
@@ -29,6 +32,9 @@ if (MODE !== 'app') {
 }
 // Global shortcuts on Wayland go through the desktop portal.
 if (process.platform === 'linux') app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
+// Windows shows the notifications of the app only when this ID is the ID of its Start menu shortcut.
+// Keep it equal to build.appId in package.json. The packaged package.json has no "build" field, so the code cannot read it.
+if (process.platform === 'win32') app.setAppUserModelId('app.moulin');
 
 const events = new EventEmitter(); // The E2E test listens to these events.
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
@@ -63,7 +69,7 @@ function saveSettings() {
   fs.renameSync(`${file}.tmp`, file);
 }
 
-const readyText = () => `Ready. Press ${settings.hotkey} to dictate.`;
+const readyText = () => (settings.hotkey ? `Ready. Press ${settings.hotkey} to dictate.` : 'Ready. Use the menu or your system shortcut to dictate.');
 
 // Tray images: black template images on macOS (the menu bar colors them), colored tiles on Windows and Linux.
 const images = new Map();
@@ -98,7 +104,7 @@ function setState(next, text) {
 
 function buildMenu() {
   const busy = state === 'recording' || state === 'transcribing';
-  const shortcut = globalShortcut.isRegistered(settings.hotkey) ? { accelerator: settings.hotkey, registerAccelerator: false } : {};
+  const shortcut = settings.hotkey && globalShortcut.isRegistered(settings.hotkey) ? { accelerator: settings.hotkey, registerAccelerator: false } : {};
   const short = (t) => (t.length > 50 ? `${t.slice(0, 50).trim()}…` : t);
   return Menu.buildFromTemplate([
     { label: status, enabled: false },
@@ -149,9 +155,14 @@ function createOverlay() {
   return overlay.loadFile(path.join(__dirname, 'overlay', 'overlay.html'));
 }
 
+// The page of a window, or null after Electron destroys the window (for example during the quit).
+// A destroyed window throws "Object has been destroyed" when the code reads its webContents.
+const pageOf = (win) => (win && !win.isDestroyed() ? win.webContents : null);
+
 // The pop-up shows at the bottom center of the screen with the mouse pointer.
 function setOverlay(view, text = '', hideAfterMs = 0) {
   clearTimeout(hideTimer);
+  if (!pageOf(overlay)) return;
   overlay.webContents.send('overlay:state', { state: view, text });
   if (view === 'hidden' || !settings.showOverlay) {
     overlay.hide();
@@ -208,7 +219,7 @@ async function startRecording() {
   }
   setState('recording', 'Recording');
   setOverlay('recording');
-  overlay.webContents.send('rec', { command: 'start', deviceId: settings.microphoneId });
+  pageOf(overlay)?.send('rec', { command: 'start', deviceId: settings.microphoneId });
   registerEscape(true);
   maxTimer = setTimeout(stopRecording, MAX_RECORDING_MS);
 }
@@ -220,14 +231,14 @@ function stopRecording() {
   stopAt = Date.now();
   setState('transcribing', 'Transcribing');
   setOverlay('transcribing', 'Transcribing');
-  overlay.webContents.send('rec', { command: 'stop' });
+  pageOf(overlay)?.send('rec', { command: 'stop' });
 }
 
 function cancelRecording() {
   if (state !== 'recording') return;
   clearTimeout(maxTimer);
   registerEscape(false);
-  overlay.webContents.send('rec', { command: 'cancel' });
+  pageOf(overlay)?.send('rec', { command: 'cancel' });
   setState('idle', readyText());
   setOverlay('hidden');
 }
@@ -284,9 +295,14 @@ async function transcribe() {
   events.emit('result', { ...result, stopAt });
 }
 
+// An empty shortcut means no Moulin shortcut: a system shortcut runs "Moulin --toggle".
 function registerHotkey(accelerator = settings.hotkey) {
+  if (!accelerator) return null;
   try {
-    return globalShortcut.register(accelerator, toggle) ? null : `${accelerator} is in use by another app. Choose a different shortcut.`;
+    if (globalShortcut.register(accelerator, toggle)) return null;
+    return WAYLAND
+      ? `This desktop refuses the shortcut ${accelerator}. Add a system shortcut that runs Moulin with --toggle, and remove this one.`
+      : `${accelerator} is in use by another app. Choose a different shortcut.`;
   } catch {
     return `${accelerator} is not a valid shortcut.`;
   }
@@ -294,7 +310,7 @@ function registerHotkey(accelerator = settings.hotkey) {
 
 // Keep the old shortcut if the new one does not register.
 function changeHotkey(next) {
-  globalShortcut.unregister(settings.hotkey);
+  if (settings.hotkey) globalShortcut.unregister(settings.hotkey);
   const error = registerHotkey(next);
   if (error) {
     registerHotkey(settings.hotkey);
@@ -361,7 +377,7 @@ function openSettings() {
     show: false,
     title: 'Moulin',
     icon: ICON,
-    ...(IS_MAC ? { titleBarStyle: 'hiddenInset' } : { autoHideMenuBar: true }),
+    ...(IS_MAC ? { titleBarStyle: 'hiddenInset' } : {}),
     webPreferences: { preload: path.join(__dirname, 'settings', 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   settingsWin.webContents.setWindowOpenHandler(({ url }) => {
@@ -377,11 +393,12 @@ function openSettings() {
 }
 
 function listenToPages() {
-  const fromOverlay = (event) => event.sender === overlay?.webContents;
-  const fromSettings = (event) => !!settingsWin && !settingsWin.isDestroyed() && event.sender === settingsWin.webContents;
+  const fromOverlay = (event) => event.sender === pageOf(overlay);
+  const fromSettings = (event) => event.sender === pageOf(settingsWin);
 
   // Only the pages of the app get the microphone, and only for audio.
-  const ours = (wc) => !!wc && (wc === overlay?.webContents || (!!settingsWin && !settingsWin.isDestroyed() && wc === settingsWin.webContents));
+  // Chromium also calls these handlers during the quit, after the pop-up window is destroyed.
+  const ours = (wc) => !!wc && (wc === pageOf(overlay) || wc === pageOf(settingsWin));
   session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) =>
     callback(ours(wc) && permission === 'media' && (details.mediaTypes || []).every((t) => t === 'audio')));
   session.defaultSession.setPermissionCheckHandler((wc, permission) => ours(wc) && permission === 'media');
@@ -410,12 +427,13 @@ function listenToPages() {
     if (typeof patch.microphoneId === 'string') settings.microphoneId = patch.microphoneId;
     saveSettings();
     applyLoginItem();
-    if (state === 'idle') setState('idle', readyText());
+    // A good shortcut also clears an old error, for example "This desktop refuses the shortcut".
+    if (state === 'idle' || (state === 'error' && signedIn && !hotkeyError)) setState('idle', readyText());
     return snapshot();
   });
   // While the user types a new shortcut, the old one must not start a dictation.
   ipcMain.on('settings:capture', (e, on) => {
-    if (!fromSettings(e)) return;
+    if (!fromSettings(e) || !settings.hotkey) return;
     if (on) globalShortcut.unregister(settings.hotkey);
     else if (!globalShortcut.isRegistered(settings.hotkey)) registerHotkey();
   });
@@ -448,6 +466,8 @@ async function askPermissionsOnce() {
 async function main() {
   const firstRun = !fs.existsSync(settingsFile());
   settings = loadSettings();
+  // Windows and Linux: no File, Edit, and View menu bar in the windows. macOS keeps its menu for Cmd+C and Cmd+V.
+  if (!IS_MAC) Menu.setApplicationMenu(null);
   if (MODE === 'capture') return require('./capture').run(chatgpt.create({ allowMedia: true, icon: ICON }), chatgpt, OUT_DIR);
   if (IS_MAC) app.dock?.hide();
   tray = new Tray(trayImage('idle'));
@@ -476,16 +496,18 @@ async function main() {
     openSettings();
     await askPermissionsOnce();
   }
+  if (MODE === 'app' && TOGGLE) toggle(); // A system shortcut started Moulin: start the dictation now.
   if (MODE === 'e2e') {
-    require('./e2e').run({ toggle, events, settings, chatgpt, page, hotkeyOk: !hotkeyError, sample: SAMPLE, outDir: OUT_DIR });
+    require('./e2e').run({ events, settings, chatgpt, page, hotkeyOk: !hotkeyError, sample: SAMPLE, outDir: OUT_DIR });
   }
 }
 
-if (!app.requestSingleInstanceLock()) {
-  console.error('Moulin runs already.');
-  app.exit(1);
+// A second start sends its request to the running Moulin: --toggle starts or stops a dictation, a plain start opens the settings.
+if (!app.requestSingleInstanceLock({ toggle: TOGGLE })) {
+  if (!TOGGLE) console.error('Moulin runs already.');
+  app.exit(TOGGLE ? 0 : 1);
 } else {
-  app.on('second-instance', openSettings);
+  app.on('second-instance', (event, argv, workingDirectory, request) => (request?.toggle ? toggle() : openSettings()));
   app.on('window-all-closed', () => {}); // Moulin stays in the tray.
   app.on('will-quit', () => globalShortcut.unregisterAll());
   app.whenReady().then(main).catch((err) => {

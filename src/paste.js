@@ -22,13 +22,16 @@ async function paste() {
     ...(wayland ? [['wtype', ['-M', 'ctrl', '-k', 'v', '-m', 'ctrl']], ['ydotool', ['key', '29:1', '47:1', '47:0', '29:0']]] : []),
     ['xdotool', ['key', '--clearmodifiers', 'ctrl+v']],
   ];
+  // Try the next tool when a tool is missing, and also when the desktop refuses it (for example wtype on GNOME).
+  const failures = [];
   for (const [command, args] of tools) {
     try {
       return await run(command, args);
     } catch (err) {
-      if (err.code !== 'ENOENT') throw err;
+      if (err.code !== 'ENOENT') failures.push(`${command}: ${err.message.trim().split('\n').pop()}`);
     }
   }
+  if (failures.length) throw new Error(failures.join('; '));
   throw new Error(wayland ? 'install wtype or ydotool' : 'install xdotool');
 }
 

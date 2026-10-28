@@ -52,7 +52,14 @@ async function maxVolumeDb(file, fromS, toS) {
   return match[1] === '-inf' ? -Infinity : Number(match[1]);
 }
 
-async function run({ toggle, events, settings, chatgpt, page, hotkeyOk, sample, outDir }) {
+// The trigger: a second Moulin process with --toggle, the same path as a system shortcut. Returns the run time of that process.
+async function toggleFromOutside() {
+  const startedAt = Date.now();
+  await exec(process.execPath, app.isPackaged ? ['--toggle'] : [app.getAppPath(), '--toggle'], { timeout: 30_000 });
+  return Date.now() - startedAt;
+}
+
+async function run({ events, settings, chatgpt, page, hotkeyOk, sample, outDir }) {
   const startedAt = new Date().toISOString();
   const stamp = startedAt.replace(/[:.]/g, '-');
   const audioFile = path.join(outDir, `e2e-${stamp}.webm`);
@@ -63,12 +70,13 @@ async function run({ toggle, events, settings, chatgpt, page, hotkeyOk, sample, 
   events.on('state', (s) => trayStates.push(s.state));
   events.on('overlay', (o) => overlayStates.push(o));
   const report = {
-    test: 'One dictation: hotkey start, hotkey stop, upload, clipboard',
+    test: 'One dictation: start and stop with "Moulin --toggle", upload, clipboard',
     startedAt,
     app: { name: app.getName(), version: app.getVersion(), packaged: app.isPackaged, executable: process.execPath },
     versions: { electron: process.versions.electron, chrome: process.versions.chrome, os: `${process.platform} ${process.getSystemVersion()}` },
     strategy: 'B: the app records the audio, and the hidden chatgpt.com page uploads it with fetch from an isolated world',
-    hotkey: { accelerator: settings.hotkey, registered: hotkeyOk, trigger: 'the test calls the hotkey handler in the main process' },
+    hotkey: { accelerator: settings.hotkey, registered: hotkeyOk },
+    trigger: 'a second Moulin process with --toggle (the path of a system shortcut)',
     page,
   };
   try {
@@ -80,12 +88,13 @@ async function run({ toggle, events, settings, chatgpt, page, hotkeyOk, sample, 
     const sampleS = await seconds(sample);
     report.sample = { file: path.basename(sample), seconds: sampleS };
 
-    toggle(); // The hotkey: start.
-    await next(events, 'started', 10_000, 'micError');
+    const started = next(events, 'started', 15_000, 'micError');
+    report.toggleProcessMs = { start: await toggleFromOutside() };
+    await started;
     await delay((sampleS + TAIL_S) * 1000);
     const audioReady = next(events, 'audio', 10_000);
     const resultReady = next(events, 'result', 300_000);
-    toggle(); // The hotkey: stop.
+    report.toggleProcessMs.stop = await toggleFromOutside();
     const audio = await audioReady;
     fs.writeFileSync(audioFile, audio.audio);
     const result = await resultReady;
