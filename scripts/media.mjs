@@ -1,60 +1,38 @@
 // The images of the website and the README, made from the shapes in docs/mill.js and docs/wordmark.js.
 // scripts/make-icons.mjs writes them to docs/media. The animations are CSS in the SVG files, so they also play in a README.
-import { COLORS, SAIL_FINE, VOICE, glyphInner, iconSvg, sailsSvg, towerParts, windSvg } from '../docs/mill.js';
+import { HILL, PAINT, SAIL_FINE, glyphInner, iconSvg, millSvg, windSvg } from '../docs/mill.js';
 import { WORDMARK } from '../docs/wordmark.js';
 import { DEFINITION } from './definition.mjs';
 
-const C = COLORS;
 const r2 = (n) => Math.round(n * 100) / 100;
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', Arial, sans-serif";
 
-function wordmark({ x, y, size, color = C.white, dot = C.signal }) {
+function wordmark({ x, y, size, color, dot }) {
   const { d, dot: o } = WORDMARK;
   return `<g transform="translate(${x} ${y}) scale(${r2(size / 1000)})"><path d="${d}" fill="${color}"/><circle cx="${o.cx}" cy="${o.cy}" r="${o.r}" fill="${dot}"/></g>`;
 }
 
 // The definition under the wordmark, in two lines: "moulin à paroles [mulɛ̃ a paʀɔl]" and the meaning. size is the font size.
-function definition({ x, y, size }) {
+function definition({ x, y, size, color }) {
   const { phrase, ipa, meaning } = DEFINITION;
   const k = r2(size / 100);
-  return `<g transform="translate(${x} ${y}) scale(${k})">`
-    + `<path transform="translate(0 ${-phrase.baseline})" d="${phrase.d}" fill="#fff" fill-opacity="0.92"/>`
-    + `<path transform="translate(${r2(phrase.width + 30)} ${-ipa.baseline})" d="${ipa.d}" fill="#fff" fill-opacity="0.62"/>`
-    + `<path transform="translate(0 ${150 - meaning.baseline})" d="${meaning.d}" fill="#fff" fill-opacity="0.78"/></g>`;
-}
-
-// The hill is this number of sail lengths below the hub, as on the website (docs/site.js).
-const HILL = 1.42;
-
-// The mill of the banners, around the hub at (0, 0), in the units of docs/mill.js. height is the length of the tower below the cap.
-// The sails cut a thin gap in the tower, so that they stay readable. The gap is paint in the color of the field: the full
-// shape of each sail, without the holes of the frame (else the tower shows through the frame), with a wide stroke.
-// A mask that does not move keeps this paint on the tower and the cap. The turning shapes stay out of the mask: with
-// transform-box: fill-box, Firefox turned the shapes in the old mask around the wrong point. The mask is 4 units larger
-// than the tower, because a mask edge on the tower edge leaves a thin light line.
-// A CSS animation turns each "sails" group around its origin, which is the hub.
-function bannerMill({ height, g = SAIL_FINE, gap = 10, angle = 45 }) {
-  const t = towerParts(height);
-  const full = `<rect x="${r2(-g.spar / 2)}" y="${-g.length}" width="${g.spar}" height="${g.length - g.spar}" rx="${r2(g.spar / 2)}"/>`
-    + `<rect y="${-g.length}" width="${g.width}" height="${g.length - g.inner}" rx="${r2(g.rail / 2)}"/>`;
-  const gaps = [0, 90, 180, 270].map((a) => `<g transform="rotate(${r2(angle + a)})">${full}</g>`).join('');
-  return `<defs><mask id="mill-body" maskUnits="userSpaceOnUse" x="-400" y="-400" width="800" height="${r2(height + 800)}">`
-    + `<g fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"><path d="${t.tower}"/><path d="${t.cap}"/></g></mask></defs>`
-    + `<path d="${t.tower}" fill="${C.tower}"/><path d="${t.cap}" fill="${C.white}"/>`
-    + `<path d="${t.door}" fill="${C.green}"/><path d="${t.window}" fill="${C.green}"/>`
-    + `<g mask="url(#mill-body)"><g class="sails" fill="${C.green}" stroke="${C.green}" stroke-width="${2 * gap}" stroke-linejoin="round">${gaps}</g></g>`
-    + `<g class="sails" fill="${C.white}">${sailsSvg(g, VOICE, angle)}</g>`
-    + `<circle r="32" fill="${C.white}"/><circle r="20" fill="${C.signal}"/>`;
+  return `<g transform="translate(${x} ${y}) scale(${k})" fill="${color}">`
+    + `<path transform="translate(0 ${-phrase.baseline})" d="${phrase.d}" fill-opacity="0.92"/>`
+    + `<path transform="translate(${r2(phrase.width + 30)} ${-ipa.baseline})" d="${ipa.d}" fill-opacity="0.62"/>`
+    + `<path transform="translate(0 ${150 - meaning.baseline})" d="${meaning.d}" fill-opacity="0.78"/></g>`;
 }
 
 // A wide banner in flat colors: the mill on a hill at the right, the wordmark and its definition at the left.
 // Used for the README and the social card. hub is the x of the hub, ground is the top of the hill below the hub,
-// and sail is the length of a sail, in pixels.
+// and sail is the length of a sail, in pixels. A CSS animation turns the "sails" group around its origin, which is the hub.
 export function heroSvg({ width = 1280, height = 560, hub = 920, ground = 526, sail = 200, word = { x: 96, y: 306, size: 180 }, defSize = 24, round = 28, animate = true } = {}) {
+  const paint = PAINT;
   const scale = r2((sail / SAIL_FINE.length) * 1000) / 1000;
   const hubY = r2(ground - HILL * sail);
   const tower = r2((ground + 12 - hubY) / scale - 30); // The tower goes 12 px into the hill.
   const hill = `M0 ${height} L0 ${ground + 24} C ${r2(width * 0.3)} ${ground + 12}, ${hub - 300} ${ground - 2}, ${hub} ${ground} S ${width - 40} ${ground + 8}, ${width} ${ground + 14} L${width} ${height} Z`;
+  // The far hill, behind the mill, in a paler green.
+  const far = `M0 ${ground + 4} C ${r2(width * 0.2)} ${ground - 34}, ${r2(width * 0.42)} ${ground - 6}, ${r2(width * 0.6)} ${ground - 22} S ${r2(width * 0.9)} ${ground - 66}, ${width} ${ground - 44} L${width} ${height} L0 ${height} Z`;
   const style = animate ? `<style>
   .sails { animation: turn 32s linear infinite; }
   .wind { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; animation: blow linear infinite; }
@@ -67,12 +45,13 @@ export function heroSvg({ width = 1280, height = 560, hub = 920, ground = 526, s
 ${style}
 <defs><clipPath id="banner"><rect width="${width}" height="${height}" rx="${round}"/></clipPath></defs>
 <g clip-path="url(#banner)">
-  <rect width="${width}" height="${height}" fill="${C.green}"/>
-  ${windSvg({ width, height, opacity: [0.2, 0.16, 0.14] })}
-  <g transform="translate(${hub} ${hubY}) scale(${scale})">${bannerMill({ height: tower })}</g>
-  <path d="${hill}" fill="${C.greenDeep}"/>
-  ${wordmark(word)}
-  ${definition({ x: r2(word.x + 0.034 * word.size), y: r2(word.y + defSize * 2.3), size: defSize })}
+  <rect width="${width}" height="${height}" fill="${paint.sky}"/>
+  ${windSvg({ width, height, opacity: [0.95, 0.85, 0.75] })}
+  <path d="${far}" fill="${paint.far}"/>
+  <g transform="translate(${hub} ${hubY}) scale(${scale})">${millSvg({ height: tower, g: SAIL_FINE })}</g>
+  <path d="${hill}" fill="${paint.land}"/>
+  ${wordmark({ ...word, color: paint.ink, dot: paint.hub })}
+  ${definition({ x: r2(word.x + 0.034 * word.size), y: r2(word.y + defSize * 2.3), size: defSize, color: paint.ink })}
 </g>
 </svg>`;
 }
@@ -156,7 +135,8 @@ export function demoSvg() {
     + `<text class="label" x="${cx - 33}" y="${pillY + 5.5}">Transcribing</text></g>`;
   const done = `<g class="c-done"><path d="M${cx - 42} ${pillY + 0.5} l6 6 l12.5 -13" fill="none" stroke="#32D74B" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`
     + `<text class="label" x="${cx - 12}" y="${pillY + 5.5}">Pasted</text></g>`;
-  const key = (cls) => `<g class="key ${cls}"><rect x="806" y="438" width="74" height="66" rx="13" fill="#07120E" fill-opacity="0.4"/><g class="cap">`
+  const P = PAINT;
+  const key = (cls) => `<g class="key ${cls}"><rect x="806" y="438" width="74" height="66" rx="13" fill="${P.land}" fill-opacity="0.3"/><g class="cap">`
     + `<rect x="806" y="432" width="74" height="66" rx="13" fill="url(#key)" stroke="#C9D2CC"/>`
     + `<text x="843" y="472" text-anchor="middle" class="keylabel">F5</text></g></g>`;
   const text = (y, s, cls = '') => `<text x="214" y="${y}" class="body ${cls}">${s}</text>`;
@@ -165,12 +145,12 @@ export function demoSvg() {
 <title>Moulin: push F5, speak, push F5 again, and the text is at the cursor</title>
 <style>
   text { font-family: ${FONT}; }
-  .menu { font-size: 14px; fill: #fff; }
+  .menu { font-size: 14px; fill: #1D1D1F; }
   .menu.app { font-weight: 700; }
   .wtitle { font-size: 14px; font-weight: 600; fill: #3A3A40; }
   .date { font-size: 13px; fill: #8A8A93; }
   .body { font-size: 17.5px; fill: #1D1D22; }
-  .caret { fill: ${C.green}; animation: blink 1.06s steps(1) infinite; }
+  .caret { fill: ${P.land}; animation: blink 1.06s steps(1) infinite; }
   .label { font-size: 16px; font-weight: 600; fill: #fff; }
   .tick { font-size: 16px; font-weight: 600; fill: #fff; fill-opacity: 0.66; font-variant-numeric: tabular-nums; }
   .keylabel { font-size: 21px; font-weight: 600; fill: #1C1C22; }
@@ -222,22 +202,24 @@ export function demoSvg() {
   <clipPath id="screen"><rect width="${W}" height="${H}" rx="20"/></clipPath>
 </defs>
 <g clip-path="url(#screen)">
-  <rect width="${W}" height="${H}" fill="${C.green}"/>
-  <path d="M0 ${H} L0 ${H - 46} C 300 ${H - 70}, 620 ${H - 78}, ${W} ${H - 56} L${W} ${H} Z" fill="${C.greenDeep}"/>
+  <rect width="${W}" height="${H}" fill="${P.sky}"/>
+  <path d="M0 ${H - 66} C 260 ${H - 104}, 560 ${H - 78}, ${W} ${H - 100} L${W} ${H} L0 ${H} Z" fill="${P.far}"/>
+  <path d="M0 ${H} L0 ${H - 46} C 300 ${H - 70}, 620 ${H - 78}, ${W} ${H - 56} L${W} ${H} Z" fill="${P.land}"/>
 
   <g class="menubar">
-    <rect width="${W}" height="32" fill="#07120E" fill-opacity="0.2"/>
+    <rect width="${W}" height="32" fill="#FFFFFF" fill-opacity="0.5"/>
     <text x="24" y="21" class="menu app">Notes</text>
     <text x="84" y="21" class="menu">File</text><text x="124" y="21" class="menu">Edit</text><text x="164" y="21" class="menu">Format</text><text x="226" y="21" class="menu">View</text><text x="274" y="21" class="menu">Window</text>
-    ${glyphAt({ x: 726, y: 6, size: 20, color: '#FFFFFF', id: 'menu-idle', cls: 'menu-idle' })}
-    ${glyphAt({ x: 726, y: 6, size: 20, color: '#FF453A', id: 'menu-rec', cls: 'menu-rec' })}
-    ${glyphAt({ x: 726, y: 6, size: 20, color: '#FFFFFF', id: 'menu-busy', cls: 'menu-busy' })}
-    <path d="M774.32 16.72 A5.2 5.2 0 0 1 781.68 16.72 M771.64 14.04 A9 9 0 0 1 784.36 14.04" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="778" cy="20.4" r="1.7" fill="#fff"/>
-    <rect x="796" y="10.5" width="22" height="11" rx="3" fill="none" stroke="#fff" stroke-opacity="0.85" stroke-width="1.2"/><rect x="798" y="12.5" width="15" height="7" rx="1.6" fill="#fff"/><rect x="819.2" y="14" width="1.6" height="4" rx="0.8" fill="#fff" fill-opacity="0.85"/>
+    ${glyphAt({ x: 726, y: 6, size: 20, color: '#1D1D1F', id: 'menu-idle', cls: 'menu-idle' })}
+    ${glyphAt({ x: 726, y: 6, size: 20, color: '#FF3B30', id: 'menu-rec', cls: 'menu-rec' })}
+    ${glyphAt({ x: 726, y: 6, size: 20, color: '#1D1D1F', id: 'menu-busy', cls: 'menu-busy' })}
+    <path d="M774.32 16.72 A5.2 5.2 0 0 1 781.68 16.72 M771.64 14.04 A9 9 0 0 1 784.36 14.04" fill="none" stroke="#1D1D1F" stroke-width="1.8" stroke-linecap="round"/><circle cx="778" cy="20.4" r="1.7" fill="#1D1D1F"/>
+    <rect x="796" y="10.5" width="22" height="11" rx="3" fill="none" stroke="#1D1D1F" stroke-opacity="0.85" stroke-width="1.2"/><rect x="798" y="12.5" width="15" height="7" rx="1.6" fill="#1D1D1F"/><rect x="819.2" y="14" width="1.6" height="4" rx="0.8" fill="#1D1D1F" fill-opacity="0.85"/>
     <text x="936" y="21" class="menu" text-anchor="end">Wed 28 Oct 9:41</text>
   </g>
 
   <rect x="178" y="70" width="604" height="300" rx="14" fill="#FFFFFF"/>
+  <rect x="178.5" y="70.5" width="603" height="299" rx="13.5" fill="none" stroke="${P.land}" stroke-opacity="0.14"/>
   <circle cx="202" cy="93" r="6.5" fill="#FF5F57"/><circle cx="223" cy="93" r="6.5" fill="#FEBC2E"/><circle cx="244" cy="93" r="6.5" fill="#28C840"/>
   <text x="480" y="98" class="wtitle" text-anchor="middle">Standup</text>
   <path d="M178 116 H782" stroke="#000" stroke-opacity="0.07"/>

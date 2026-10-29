@@ -1,4 +1,5 @@
-/* Moulin website: one screen in flat colors, like a poster. A darker green when the system uses the dark appearance. */
+/* Moulin website: one screen in flat colors, like a poster. A pale sky above a green hill, also when the system uses
+   the dark appearance. Keep the colors of the scene equal to PAINT in mill.js. */
 
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Spectral"; src: url("fonts/Spectral-Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
@@ -7,44 +8,69 @@
 @font-face { font-family: "EB Garamond IPA"; src: url("fonts/EBGaramond-IPA.woff2") format("woff2"); font-display: swap; }
 
 :root {
-  color-scheme: light dark;
-  --green: #23493B;
-  --field: #23493B;
-  --hill: #1A382D;
-  --mill: #FFFFFF;
-  --tower: #E6ECE4;
+  color-scheme: light;
+  /* The scene. */
+  --sky: #DCE5EA;
+  --far: #C3D2CD;
+  --land: #23493B;
+  --tower: #F3EAD6;
+  --roof: #D9C9A8;
+  --sails: #23493B;
+  --holes: #23493B;
+  --ring: #F3EAD6;
   --signal: #FF3B30;
-  --text: #FFFFFF;
-  --text-2: rgb(255 255 255 / 0.84);
-  --text-3: rgb(255 255 255 / 0.68);
-  --well: rgb(6 18 13 / 0.3);
+  /* The words, on the sky. */
+  --text: #23493B;
+  --text-2: #355448;
+  --text-3: #4E685E;
+  --well: rgb(35 73 59 / 0.08);
+  --tab-on: rgb(255 255 255 / 0.72);
+  --button: #23493B;
+  --button-text: #F3EAD6;
+  --button-hover: #2D5949;
+  --code: rgb(255 255 255 / 0.5);
+  --copy: rgb(35 73 59 / 0.09);
+  --copy-hover: rgb(35 73 59 / 0.15);
+  --selection: rgb(35 73 59 / 0.18);
+  /* The credits, on the land. */
+  --credits: rgb(243 234 214 / 0.86);
+  --credits-link: #F3EAD6;
   --gutter: clamp(20px, 6vw, 96px);
+  --control: 44px; /* The height of the tabs and of the download button. */
   --serif: "Spectral", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+/* The stacked page: the words sit on the land, in cream. Keep this query equal to "stacked" in site.js. */
+@media (max-width: 979px), (max-aspect-ratio: 5/4) {
   :root {
-    --field: #16302A;
-    --hill: #10241E;
-    --mill: #EEF3EF;
-    --tower: #D3DDD6;
-    --well: rgb(0 0 0 / 0.28);
+    --text: #F3EAD6;
+    --text-2: rgb(243 234 214 / 0.88);
+    --text-3: rgb(243 234 214 / 0.72);
+    --well: rgb(0 0 0 / 0.18);
+    --tab-on: rgb(243 234 214 / 0.16);
+    --button: #F3EAD6;
+    --button-text: #23493B;
+    --button-hover: #E6DCC5;
+    --code: rgb(0 0 0 / 0.18);
+    --copy: rgb(243 234 214 / 0.14);
+    --copy-hover: rgb(243 234 214 / 0.22);
+    --selection: rgb(243 234 214 / 0.28);
   }
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* The sky above and the land below, also when the page bounces past its top or its bottom. */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: var(--field);
+  background: linear-gradient(var(--sky) 50%, var(--land) 50%);
 }
 
 body {
   margin: 0;
-  background: var(--field);
   color: var(--text);
   font: 400 18px/1.55 var(--serif);
   font-kerning: normal;
@@ -52,12 +78,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection { background: rgb(255 255 255 / 0.28); }
+::selection { background: var(--selection); }
 
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
 a:hover { text-decoration-thickness: 2px; }
 
-:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; border-radius: 6px; }
+.footer :focus-visible { outline-color: var(--credits-link); }
 
 p { margin: 0; text-wrap: pretty; }
 
@@ -87,12 +114,20 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .scene.grabbing { cursor: grabbing; }
 .ink { z-index: 2; pointer-events: none; }
 
-.scene .hill { fill: var(--hill); }
+.hero { background: var(--sky); }
+.scene .hill { fill: var(--land); }
+.scene .far { fill: var(--far); }
 .scene .tower { fill: var(--tower); }
-.scene .cap, .scene .ring, .scene .sails-face { fill: var(--mill); }
-.scene .hole { fill: var(--field); }
+.scene .cap { fill: var(--roof); }
+.scene .ring { fill: var(--ring); }
+.scene .sails-face { fill: var(--sails); }
+.scene .hole { fill: var(--holes); }
+.scene .hub { fill: var(--signal); }
+/* site.js sets --gust: the wind streaks get stronger with each gust. */
+.scene .winds { opacity: var(--gust, 1); }
 .scene .wind { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; animation: blow linear infinite; }
-.ink .word-inv { fill: var(--field); }
+.ink .word-inv { fill: var(--sky); }
+.ink .word-dot { fill: var(--signal); }
 
 @keyframes blow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: var(--run); } }
 
@@ -106,7 +141,7 @@ code { font-family: var(--mono); font-size: 0.86em; }
 
 .wordmark { margin: 0; line-height: 0; }
 .wordmark svg { display: block; width: clamp(240px, 33vw, 500px); height: auto; overflow: visible; }
-.word-face { fill: #fff; }
+.word-face { fill: var(--text); }
 .word-dot { fill: var(--signal); }
 
 .definition { margin-top: 14px; font-size: 17px; color: var(--text-2); }
@@ -129,13 +164,14 @@ code { font-family: var(--mono); font-size: 0.86em; }
 .tabs {
   display: inline-flex;
   gap: 2px;
+  height: var(--control);
   padding: 4px;
   border-radius: 999px;
   background: var(--well);
 }
 
 .tab {
-  padding: 8px 18px;
+  padding: 0 18px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -144,8 +180,8 @@ code { font-family: var(--mono); font-size: 0.86em; }
   cursor: pointer;
 }
 
-.tab:hover { color: #fff; }
-.tab[aria-selected="true"] { background: rgb(255 255 255 / 0.16); color: #fff; }
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] { background: var(--tab-on); color: var(--text); }
 
 .panel { margin-top: 16px; }
 
@@ -153,21 +189,43 @@ html:not(.js) .tabs { display: none; }
 html:not(.js) .panel[hidden] { display: block; }
 html:not(.js) .panel::before { content: attr(data-name); display: block; margin: 18px 0 8px; font-weight: 500; }
 
+/* All panels share one grid cell, and a hidden panel keeps its space. The block keeps the height of the tallest panel,
+   so the page does not move when the visitor changes the tab: the words are centered on the screen. */
+html.js .install { display: grid; grid-template-columns: minmax(0, 1fr); }
+html.js .tabs { justify-self: start; }
+html.js .panel { grid-area: 2 / 1; }
+html.js .panel[hidden] { display: block; visibility: hidden; }
+
+/* From 640 px, the words have room for the tabs and the widest button (about 545 px) in one row: the download button
+   goes at the right of the tabs, and the command below them. Each panel is a subgrid of the install grid, so the
+   download link stays in its panel. */
+@media (min-width: 640px) {
+  @supports (grid-template-rows: subgrid) {
+    html.js .install { grid-template-columns: max-content minmax(0, 1fr); align-items: center; column-gap: 12px; }
+    html.js .tabs { grid-area: 1 / 1; position: relative; z-index: 1; } /* Above the panels, which also cover this cell. */
+    html.js .panel, html.js .panel[hidden] { display: grid; grid-template-columns: subgrid; grid-template-rows: subgrid; grid-area: 1 / 1 / span 3 / -1; margin-top: 0; }
+    html.js .panel .download { grid-area: 1 / 2; justify-self: start; }
+    html.js .panel .alt { grid-area: 2 / 1 / 3 / -1; }
+    html.js .panel .command { grid-area: 3 / 1 / 4 / -1; }
+  }
+}
+
 .download {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  min-height: 48px;
+  height: var(--control);
   padding: 0 24px;
+  white-space: nowrap;
   border-radius: 999px;
-  background: #fff;
-  color: var(--green);
+  background: var(--button);
+  color: var(--button-text);
   font-weight: 500;
   text-decoration: none;
 }
 
 .download svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.download:hover { background: #E6ECE4; text-decoration: none; }
+.download:hover { background: var(--button-hover); text-decoration: none; }
 
 .alt { margin-top: 16px; font-size: 14px; color: var(--text-3); }
 
@@ -178,7 +236,7 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
   margin-top: 8px;
   padding: 6px 6px 6px 14px;
   border-radius: 14px;
-  background: var(--well);
+  background: var(--code);
 }
 
 .command .prompt { font: 13.5px/2 var(--mono); color: var(--text-3); }
@@ -197,13 +255,13 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
   padding: 8px 14px;
   border: 0;
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.12);
-  color: #fff;
+  background: var(--copy);
+  color: var(--text);
   font: 500 14px/1 var(--serif);
   cursor: pointer;
 }
 
-.command .copy:hover { background: rgb(255 255 255 / 0.2); }
+.command .copy:hover { background: var(--copy-hover); }
 
 
 /* The credits, alone at the bottom of the page. */
@@ -213,10 +271,10 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
   text-align: right;
   padding: 56px var(--gutter) 28px;
   font-size: 16px;
-  color: var(--text-2);
+  color: var(--credits);
 }
 
-.footer a { color: #fff; font-weight: 500; text-decoration: none; }
+.footer a { color: var(--credits-link); font-weight: 500; text-decoration: none; }
 .footer a:hover { text-decoration: underline; }
 
 /* ---------- The stacked page: the mill above, the words below. Keep this query equal to "stacked" in site.js. ---------- */
@@ -230,7 +288,7 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
 
 @media (max-width: 560px) {
   body { font-size: 17px; }
-  .tab { padding: 8px 14px; }
+  .tab { padding: 0 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
