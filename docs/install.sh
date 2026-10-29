@@ -48,7 +48,7 @@ case "$(uname -s)-$(uname -m)" in
     say "Downloading Moulin for Linux..."
     curl -fL --progress-bar "$URL/Moulin-linux-x86_64.AppImage" -o "$dir/moulin.download"
     chmod +x "$dir/moulin.download"
-    if [ -f "$dir/moulin" ]; then quit_moulin moulin; fi
+    if [ -f "$dir/moulin" ]; then quit_moulin Moulin; fi
     mv -f "$dir/moulin.download" "$dir/moulin"
     say "Installed $dir/moulin"
     if [ -z "${MOULIN_NO_START:-}" ]; then nohup "$dir/moulin" >/dev/null 2>&1 & fi

@@ -1,0 +1,44 @@
+[package]
+name = "moulin"
+version = "1.1.0"
+description = "Dictation from the menu bar with the speech-to-text of your ChatGPT subscription"
+authors = ["Bixente Elgart"]
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+tauri = { version = "2.12", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri-plugin-single-instance = "2.5"
+tauri-plugin-global-shortcut = "2.4"
+tauri-plugin-clipboard-manager = "2.5"
+tauri-plugin-notification = "2.8"
+tauri-plugin-dialog = "2.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+cpal = "0.18"
+base64 = "0.23"
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["time", "sync", "macros"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+block2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSURL", "NSBundle", "NSDictionary", "NSData", "NSError", "NSValue", "NSGeometry", "NSObject", "block2"] }
+objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSImage", "NSImageRep", "NSBitmapImageRep", "NSGraphics", "NSView", "block2"] }
+objc2-web-kit = { version = "0.3", features = ["WKWebView", "WKSnapshotConfiguration", "objc2-app-kit", "block2"] }
+objc2-av-foundation = { version = "0.3", features = ["AVCaptureDevice", "AVMediaFormat", "block2"] }
+objc2-service-management = { version = "0.3", features = ["SMAppService"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-registry = "0.6"
+
+# Small binary: the app does little work, so size matters more than speed.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

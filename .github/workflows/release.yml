@@ -18,22 +18,48 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            target: --mac
+            bundles: app,dmg
           - os: windows-latest
-            target: --win
+            bundles: nsis
           # An AppImage runs only on systems that are as new as the build system, so Linux stays on Ubuntu 24.04.
           - os: ubuntu-24.04
-            target: --linux
+            bundles: appimage
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+      # WebKitGTK and the tray for Tauri, ALSA for the microphone.
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libasound2-dev patchelf xdg-utils
       - run: npm ci
       - name: Build
-        run: npx electron-builder ${{ matrix.target }} --publish never
+        run: npx tauri build --bundles ${{ matrix.bundles }}
+      # The file names do not include the version, so the download links always give the latest release.
+      - name: Collect
+        run: |
+          mkdir -p dist
+          bundle=src-tauri/target/release/bundle
+          case "$RUNNER_OS" in
+            macOS)
+              ditto -c -k --keepParent "$bundle/macos/Moulin.app" dist/Moulin-mac-arm64.zip
+              cp "$bundle"/dmg/*.dmg dist/Moulin-mac-arm64.dmg ;;
+            Windows) cp "$bundle"/nsis/*-setup.exe dist/Moulin-windows-x64.exe ;;
+            Linux) cp "$bundle"/appimage/*.AppImage dist/Moulin-linux-x86_64.AppImage ;;
+          esac
+          ls -l dist
       - uses: actions/upload-artifact@v7
         with:
           name: moulin-${{ runner.os }}

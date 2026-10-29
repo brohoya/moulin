@@ -9,14 +9,15 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'artifacts');
+const BUILD = path.join(ROOT, 'src-tauri', 'target', 'release');
 const APPS = {
   darwin: [
     path.join(os.homedir(), 'Applications/Moulin.app/Contents/MacOS/Moulin'),
     '/Applications/Moulin.app/Contents/MacOS/Moulin',
-    path.join(ROOT, 'dist/mac-arm64/Moulin.app/Contents/MacOS/Moulin'),
+    path.join(BUILD, 'bundle/macos/Moulin.app/Contents/MacOS/Moulin'),
   ],
-  win32: [path.join(process.env.LOCALAPPDATA || '', 'Programs', 'moulin', 'Moulin.exe'), path.join(ROOT, 'dist/win-unpacked/Moulin.exe')],
-  linux: [path.join(ROOT, 'dist/linux-unpacked/moulin')],
+  win32: [path.join(process.env.LOCALAPPDATA || '', 'Moulin', 'Moulin.exe'), path.join(BUILD, 'Moulin.exe')],
+  linux: [path.join(BUILD, 'Moulin'), path.join(BUILD, 'moulin')],
 };
 const binary = (APPS[process.platform] || []).find((file) => fs.existsSync(file));
 if (!binary) {

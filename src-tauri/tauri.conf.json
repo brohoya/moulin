@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Moulin",
+  "mainBinaryName": "Moulin",
+  "version": "../package.json",
+  "identifier": "app.moulin",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis", "appimage"],
+    "category": "Productivity",
+    "copyright": "Bixente Elgart",
+    "shortDescription": "Dictation with the speech-to-text of ChatGPT",
+    "longDescription": "Dictation from the menu bar with the speech-to-text of your ChatGPT subscription",
+    "icon": ["icons/128x128.png", "icons/32x32.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "signingIdentity": "-",
+      "hardenedRuntime": false
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

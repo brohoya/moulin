@@ -54,8 +54,6 @@ header {
   padding: 38px 24px 4px;
 }
 
-.drag { -webkit-app-region: drag; }
-
 .icon { width: 52px; height: 52px; }
 
 .title { flex: 1; }

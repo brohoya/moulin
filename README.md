@@ -34,7 +34,7 @@ Moulin is tested on macOS. The Windows and Linux versions are new.
   ```
 
   In Karabiner-Elements, click Import, then Enable. Congrats, now F5 is binded to F13, you lost the refresh button but you can use moulin :moyai:.
-- Linux: the AppImage needs `libfuse2`. On Ubuntu 24.04, start it with `--no-sandbox`. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland). On a GNOME desktop other than Ubuntu, install the "AppIndicator and KStatusNotifierItem Support" extension to see the windmill.
+- Linux: the AppImage needs `libfuse2`. To paste, install `xdotool` (X11), or `wtype` or `ydotool` (Wayland). On Wayland, Moulin has no global shortcut: add a system shortcut that runs `moulin --toggle`. On a GNOME desktop other than Ubuntu, install the "AppIndicator and KStatusNotifierItem Support" extension to see the windmill.
 
 ## Terms of Use and risk
 

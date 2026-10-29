@@ -1,5 +1,6 @@
 'use strict';
-const api = window.moulin;
+const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
 const $ = (id) => document.getElementById(id);
 const IS_MAC = navigator.platform.startsWith('Mac');
 const SYMBOLS = IS_MAC ? { Control: '⌃', Alt: '⌥', Shift: '⇧', Command: '⌘' } : { Control: 'Ctrl', Alt: 'Alt', Shift: 'Shift', Super: 'Super' };
@@ -52,15 +53,13 @@ function render(snapshot) {
     button.tabIndex = on ? 0 : -1;
   }
   $('mode-hint').textContent = MODE_HINTS[settings.mode] || MODE_HINTS.toggle;
-  $('mode-error').hidden = !snapshot.holdError;
-  $('mode-error').textContent = snapshot.holdError || '';
   for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) $(key).checked = settings[key];
-  $('accessibility').hidden = !(snapshot.platform === 'darwin' && settings.autoPaste && !snapshot.accessibility);
+  $('accessibility').hidden = !(snapshot.platform === 'macos' && settings.autoPaste && !snapshot.accessibility);
   if ([...$('microphone').options].some((o) => o.value === settings.microphoneId)) $('microphone').value = settings.microphoneId;
 }
 
 async function update(patch) {
-  const result = await api.set(patch);
+  const result = await invoke('settings_set', { patch });
   render(result);
   return result;
 }
@@ -68,14 +67,14 @@ async function update(patch) {
 function endCapture() {
   capturing = false;
   $('hotkey').classList.remove('capturing');
-  api.capture(false);
+  invoke('settings_capture', { on: false });
   render(current);
 }
 
 $('hotkey').addEventListener('click', () => {
   if (capturing) return endCapture();
   capturing = true;
-  api.capture(true);
+  invoke('settings_capture', { on: true });
   $('hotkey').classList.add('capturing');
   $('hotkey').textContent = 'Press keys…';
   $('hotkey-error').hidden = true;
@@ -112,38 +111,41 @@ $('microphone').addEventListener('change', (event) => update({ microphoneId: eve
 for (const button of document.querySelectorAll('[data-mode]')) {
   button.addEventListener('click', () => update({ mode: button.dataset.mode }));
 }
-$('open-accessibility').addEventListener('click', () => api.openAccessibility());
+$('open-accessibility').addEventListener('click', () => invoke('open_accessibility'));
 
 $('sign-in').addEventListener('click', async () => {
   $('sign-in').disabled = true;
-  render(await api.signIn());
+  render(await invoke('account_sign_in'));
   $('sign-in').disabled = false;
 });
 
+// Moulin asks for a confirmation in a dialog of the system. The result is null if the user cancels.
 $('sign-out').addEventListener('click', async () => {
-  if (!window.confirm('Sign out of ChatGPT in Moulin? Moulin deletes its cookies for chatgpt.com.')) return;
-  render(await api.signOut());
+  render(await invoke('account_sign_out'));
 });
 
+// Moulin lists the input devices of the system. The list loads again when the window gets the focus,
+// for example after the user plugs in a headset.
 async function loadMicrophones() {
   let devices = [];
   try {
-    devices = (await navigator.mediaDevices.enumerateDevices())
-      .filter((d) => d.kind === 'audioinput' && d.deviceId !== 'default' && d.deviceId !== 'communications');
+    devices = await invoke('microphones');
   } catch {
     // The list stays at "System default".
   }
   $('microphone').replaceChildren(
     new Option('System default', ''),
-    ...devices.map((d, i) => new Option(d.label || `Microphone ${i + 1}`, d.deviceId)),
+    ...devices.map((d, i) => new Option(d.label || `Microphone ${i + 1}`, d.id)),
   );
   $('microphone').value = '';
   render(current);
 }
 
-navigator.mediaDevices.addEventListener('devicechange', loadMicrophones);
-api.onStatus(render);
-api.get().then((snapshot) => {
+// No menu of the web view (it has "Reload") on a right-click.
+window.addEventListener('contextmenu', (event) => event.preventDefault());
+window.addEventListener('focus', loadMicrophones);
+listen('status', (event) => render(event.payload));
+invoke('settings_get').then((snapshot) => {
   render(snapshot);
   loadMicrophones();
 });

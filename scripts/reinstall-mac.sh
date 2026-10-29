@@ -7,10 +7,10 @@ set -eu
 cd "$(dirname "$0")/.."
 NAME="Moulin Local Signing"
 KEYCHAIN="$HOME/Library/Keychains/moulin-signing.keychain-db"
-APP="dist/mac-arm64/Moulin.app"
+APP="src-tauri/target/release/bundle/macos/Moulin.app"
 TARGET="$HOME/Applications/Moulin.app"
 
-npx electron-builder --mac dir --publish never
+npx tauri build --bundles app
 
 if [ -f "$KEYCHAIN" ]; then
   security unlock-keychain -p "$(security find-generic-password -s moulin-signing -w)" "$KEYCHAIN"
