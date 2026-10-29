@@ -119,7 +119,7 @@ code { font-family: var(--mono); font-size: 0.86em; }
   line-height: 1.3;
 }
 
-.caution { max-width: 34em; margin-top: clamp(18px, 3vh, 26px); font-size: 15.5px; line-height: 1.5; color: var(--text-3); }
+.caution { max-width: 34em; margin-top: clamp(18px, 3vh, 26px); font-size: 15.5px; line-height: 1.5; text-align: justify; color: var(--text-3); }
 .caution strong { font-weight: 500; color: var(--text-2); }
 
 /* ---------- Install: one tab for each system. ---------- */
@@ -210,17 +210,14 @@ html:not(.js) .panel::before { content: attr(data-name); display: block; margin:
 .footer {
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 22px;
+  text-align: right;
   padding: 56px var(--gutter) 28px;
   font-size: 16px;
   color: var(--text-2);
 }
 
-.footer .github { color: #fff; font-weight: 500; text-decoration: none; }
-.footer .github:hover { text-decoration: underline; }
+.footer a { color: #fff; font-weight: 500; text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
 
 /* ---------- The stacked page: the mill above, the words below. Keep this query equal to "stacked" in site.js. ---------- */
 
