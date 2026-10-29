@@ -3,15 +3,15 @@
 use block2::RcBlock;
 use objc2::{MainThreadMarker, msg_send, rc::Retained, runtime::Bool, sel};
 use objc2_app_kit::{
-    NSBitmapImageFileType, NSBitmapImageRep, NSEvent, NSImage, NSScreen, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior,
-    NSWorkspace,
+    NSBitmapImageFileType, NSBitmapImageRep, NSEvent, NSImage, NSRunningApplication, NSScreen, NSScreenSaverWindowLevel, NSWindow,
+    NSWindowCollectionBehavior, NSWorkspace,
 };
 use objc2_av_foundation::{AVAuthorizationStatus, AVCaptureDevice, AVMediaTypeAudio};
 use objc2_foundation::{NSArray, NSBundle, NSDictionary, NSError, NSNumber, NSPoint, NSRect, NSString};
 use objc2_service_management::{SMAppService, SMAppServiceStatus};
 use objc2_web_kit::WKWebView;
 use std::{ffi::c_void, sync::Mutex};
-use tauri::WebviewWindow;
+use tauri::{AppHandle, WebviewWindow};
 use tokio::sync::oneshot;
 
 #[link(name = "ApplicationServices", kind = "framework")]
@@ -43,7 +43,8 @@ fn ns_window(window: &WebviewWindow) -> Option<usize> {
     window.ns_window().ok().map(|pointer| pointer as usize)
 }
 
-/// The pop-up stays above the windows of full-screen apps and shows on all desktops.
+/// The pop-up stays above the windows of full-screen apps and shows on all desktops. A click on it does not make
+/// Moulin the active app, so the app of the user keeps the focus and gets the paste.
 pub fn setup_overlay(window: &WebviewWindow) {
     let Some(pointer) = ns_window(window) else { return };
     let _ = window.run_on_main_thread(move || {
@@ -56,7 +57,23 @@ pub fn setup_overlay(window: &WebviewWindow) {
                 | NSWindowCollectionBehavior::FullScreenAuxiliary
                 | NSWindowCollectionBehavior::IgnoresCycle,
         );
+        // The same flag as in the panels of AppKit that do not activate their app. The method is private, so the code
+        // checks that it exists.
+        let known: bool = unsafe { msg_send![ns_window, respondsToSelector: sel!(_setPreventsActivation:)] };
+        if known {
+            let _: () = unsafe { msg_send![ns_window, _setPreventsActivation: true] };
+        }
     });
+}
+
+/// If Moulin is the active app, hides it, so that macOS gives the front back to the previous app, which then gets the
+/// paste. Returns true if Moulin hid itself.
+pub fn return_focus(app: &AppHandle) -> bool {
+    let active = NSRunningApplication::currentApplication().isActive();
+    if active {
+        let _ = app.hide();
+    }
+    active
 }
 
 /// Shows the pop-up without making Moulin the active app. Tauri's show() makes the window key.

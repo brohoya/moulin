@@ -6,6 +6,7 @@
 //! hidden window, then in the window that the user sees. After each step, the caller sends its request again: only the
 //! answer of Cloudflare tells if the check passed.
 use super::{HOME, closes, load, parse, show, window};
+use crate::platform;
 use std::time::{Duration, Instant};
 use tauri::AppHandle;
 
@@ -66,10 +67,8 @@ pub async fn run(app: &AppHandle, step: Step) {
             show(app);
             wait(app, &old, SHOWN_WAIT).await;
             let _ = w.hide();
-            // macOS: without a window, Moulin stays the active app, and a paste would go to Moulin. A hidden app gives
-            // the front back to the app of the user.
-            #[cfg(target_os = "macos")]
-            let _ = app.hide();
+            // Without a window, Moulin can stay the active app, and a paste would go to Moulin.
+            platform::return_focus(app);
         }
     }
 }

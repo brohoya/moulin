@@ -1,11 +1,16 @@
 //! Windows and Linux: the permissions need no check, and the pop-up needs no change. The login item is different
 //! on each system.
-use tauri::{PhysicalPosition, WebviewWindow};
+use tauri::{AppHandle, PhysicalPosition, WebviewWindow};
 
 pub fn setup_overlay(_window: &WebviewWindow) {}
 
 pub fn show_inactive(window: &WebviewWindow) {
     let _ = window.show();
+}
+
+/// The pop-up cannot take the focus, so a click on it does not change the active app, and Moulin does not hide.
+pub fn return_focus(_app: &AppHandle) -> bool {
+    false
 }
 
 /// Puts the pop-up at the bottom center of the screen with the mouse pointer, `margin` points above the bottom of the

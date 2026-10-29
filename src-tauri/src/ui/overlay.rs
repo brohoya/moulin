@@ -163,25 +163,24 @@ fn send_pointer(app: &AppHandle) {
 #[tauri::command]
 pub fn overlay_clicked(app: AppHandle) {
     if moulin(&app).core().state == State::Recording {
-        spawn(stop_from_click(app));
+        // This command runs on the main thread, at the time of the click.
+        let hidden = platform::return_focus(&app);
+        spawn(stop_from_click(app, hidden));
     }
 }
 
-/// macOS: a click on the pop-up makes Moulin the active app, so the paste would go to Moulin.
-/// When Moulin hides, macOS gives the front back to the previous app. Then the pop-up shows again without activation.
-async fn stop_from_click(app: AppHandle) {
-    #[cfg(target_os = "macos")]
-    {
-        let settings_focused = app.get_webview_window(crate::ui::settings::LABEL).and_then(|w| w.is_focused().ok()).unwrap_or(false);
-        if !settings_focused {
-            let _ = app.hide();
-            tokio::time::sleep(Duration::from_millis(40)).await;
-            if moulin(&app).core().state != State::Recording {
-                return; // Esc or the time limit stopped the dictation during the wait.
-            }
-            if let Some(window) = window(&app) {
-                platform::show_inactive(&window);
-            }
+/// A click on the pop-up does not make Moulin the active app (see platform::setup_overlay), so the app of the user
+/// keeps the focus and gets the paste, and the settings window stays behind it. If Moulin was the active app anyway
+/// (for example during a dictation in the settings window), Moulin hid itself to give the front back. Then the pop-up
+/// shows again, without activation.
+async fn stop_from_click(app: AppHandle, hidden: bool) {
+    if hidden {
+        tokio::time::sleep(Duration::from_millis(40)).await;
+        if moulin(&app).core().state != State::Recording {
+            return; // Esc or the time limit stopped the dictation during the wait.
+        }
+        if let Some(window) = window(&app) {
+            platform::show_inactive(&window);
         }
     }
     on_main(&app, dictation::stop);
