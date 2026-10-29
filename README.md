@@ -12,8 +12,6 @@ curl -fsSL https://brohoya.github.io/moulin/install.sh | sh
 
 Or download Moulin for your computer: <a href="https://github.com/brohoya/moulin/releases/latest">Download</a>
 
-Moulin is tested on macOS. The Windows and Linux versions are new.
-
 ## Use
 
 1. Sign in to ChatGPT in the Moulin window.
