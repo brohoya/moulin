@@ -4,8 +4,10 @@
 //! The steps that wait (the checks, the microphone, the upload) run in tasks.
 use crate::{
     account,
-    app::{Event, State, Transcription, fail, moulin, now_ms, on_main, set_ready, set_state},
-    audio, chatgpt, hotkey,
+    app::{self, Event, State, Transcription, fail, moulin, now_ms, on_main, set_ready, set_state},
+    audio,
+    chatgpt::{self, check},
+    hotkey,
     options::Mode,
     paste, platform,
     ui::{
@@ -177,11 +179,18 @@ async fn start(app: AppHandle, hold: bool) {
         core.dictation.starting = true;
         core.signed_in
     };
-    if !signed_in && !account::check(&app).await.signed_in {
-        moulin(&app).core().dictation.starting = false;
-        fail(&app, "Sign in to ChatGPT first.", Duration::from_secs(4));
-        on_main(&app, ui::settings::open);
-        return;
+    if !signed_in {
+        let page = account::check(&app).await;
+        if !page.signed_in {
+            moulin(&app).core().dictation.starting = false;
+            if page.status == 403 {
+                app::refused(&app, check::PAGE_REFUSED, check::PAGE_NOTICE);
+            } else {
+                fail(&app, "Sign in to ChatGPT first.", Duration::from_secs(4));
+                on_main(&app, ui::settings::open);
+            }
+            return;
+        }
     }
     // The test modes record no microphone.
     if moulin(&app).opts.mode == Mode::App && !platform::microphone_allowed().await {
@@ -289,7 +298,11 @@ fn finish(app: &AppHandle, recorder: audio::Recorder) {
 async fn transcribe(app: &AppHandle) {
     let me = moulin(app);
     let Some(recording) = me.core().dictation.pending.clone() else { return };
-    let mut outcome = chatgpt::transcribe(app, &recording).await;
+    let on_check = |step| match step {
+        Some(step) => app::show_check(app, step),
+        None => show_transcribing(app),
+    };
+    let mut outcome = chatgpt::transcribe(app, &recording, on_check).await;
     let text = outcome.text.clone().unwrap_or_default();
     let speech = !text.trim().is_empty();
     if speech && let Err(err) = app.clipboard().write_text(text.clone()) {
@@ -324,11 +337,10 @@ async fn transcribe(app: &AppHandle) {
         if outcome.ok {
             set_ready(app);
             overlay::set(app, View::Done, label, Some(Duration::from_millis(1300)));
+        } else if outcome.challenge {
+            app::refused(app, &outcome.message, check::UPLOAD_NOTICE);
         } else {
             fail(app, &outcome.message, Duration::from_secs(4));
-            if outcome.show_window {
-                chatgpt::show(app);
-            }
         }
         moulin(app).emit(Event::Transcription(transcription));
     });

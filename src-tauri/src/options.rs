@@ -18,6 +18,8 @@ pub struct Options {
     pub toggle: bool,
     /// "--hold": the E2E test uses the hold mode.
     pub hold: bool,
+    /// "--challenge": the E2E test gives the first upload a fake refusal of Cloudflare, so that Moulin runs the check.
+    pub challenge: bool,
     /// "--sample=<file>": the WAV file that the E2E test plays instead of the microphone.
     pub sample: PathBuf,
     /// "--out=<folder>": the folder of the reports of the test modes.
@@ -43,6 +45,7 @@ impl Options {
             mode,
             toggle: has("--toggle"),
             hold: has("--hold"),
+            challenge: has("--challenge"),
             sample: value("sample").unwrap_or_else(|| root.join("fixtures").join("fr-sample.wav")),
             out_dir: value("out").unwrap_or_else(|| root.join("artifacts")),
         }

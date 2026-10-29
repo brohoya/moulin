@@ -1,6 +1,9 @@
 'use strict';
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
+const { getCurrentWindow } = window.__TAURI__.window;
+const { LogicalSize } = window.__TAURI__.dpi;
+const settingsWindow = getCurrentWindow();
 const $ = (id) => document.getElementById(id);
 const IS_MAC = navigator.platform.startsWith('Mac');
 const SYMBOLS = IS_MAC ? { Control: '⌃', Alt: '⌥', Shift: '⇧', Command: '⌘' } : { Control: 'Ctrl', Alt: 'Alt', Shift: 'Shift', Super: 'Super' };
@@ -38,6 +41,8 @@ function render(snapshot) {
   const { settings } = snapshot;
   $('version').textContent = `Version ${snapshot.version}`;
   $('status').textContent = snapshot.status;
+  $('notice').hidden = !snapshot.notice;
+  $('notice').textContent = snapshot.notice || '';
   const kind = !snapshot.signedIn ? 'warn' : snapshot.state === 'error' ? 'error' : 'ok';
   $('badge').dataset.kind = kind;
   $('badge').textContent = { ok: 'Ready', warn: 'Not signed in', error: 'Problem' }[kind];
@@ -141,11 +146,22 @@ async function loadMicrophones() {
   render(current);
 }
 
+// The window takes the height of its content, so that no empty space stays at the bottom. The content changes
+// its height, for example when a shortcut error shows.
+function fit() {
+  return settingsWindow.setSize(new LogicalSize(window.innerWidth, Math.ceil(document.body.getBoundingClientRect().height)));
+}
+
 // No menu of the web view (it has "Reload") on a right-click.
 window.addEventListener('contextmenu', (event) => event.preventDefault());
 window.addEventListener('focus', loadMicrophones);
 listen('status', (event) => render(event.payload));
-invoke('settings_get').then((snapshot) => {
-  render(snapshot);
+new ResizeObserver(fit).observe(document.body);
+// Moulin creates the window hidden. The page shows it when the content and the size are ready, so that the window
+// never shows empty and never changes its size at the start.
+invoke('settings_get').then(render).finally(async () => {
+  await fit();
+  await settingsWindow.show();
+  await settingsWindow.setFocus();
   loadMicrophones();
 });

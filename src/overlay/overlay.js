@@ -14,6 +14,7 @@ let meter = null;
 listen('overlay:state', ({ payload: { state, text } }) => {
   if (state === 'recording') startMeter();
   else stopMeter();
+  pill.removeAttribute('data-hover');
   const shown = pill.dataset.state !== 'hidden' && state !== 'hidden' && !reduced.matches;
   const from = pill.getBoundingClientRect().width;
   pill.style.width = '';
@@ -32,6 +33,15 @@ pill.addEventListener('transitionend', (event) => {
 });
 
 pill.addEventListener('click', () => invoke('overlay_clicked'));
+
+// While Moulin records, it sends the position of the mouse pointer: x and y from the top-left corner of the window,
+// or null when the pointer is not over the window. WebKit does not report that the pointer leaves a window that is
+// never the key window, so the page cannot use :hover.
+listen('overlay:pointer', ({ payload }) => {
+  const r = pill.getBoundingClientRect();
+  const over = payload !== null && payload.x >= r.left && payload.x <= r.right && payload.y >= r.top && payload.y <= r.bottom;
+  pill.toggleAttribute('data-hover', over);
+});
 
 // No menu of the web view (it has "Reload") on a right-click.
 window.addEventListener('contextmenu', (event) => event.preventDefault());

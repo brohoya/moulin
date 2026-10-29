@@ -94,8 +94,7 @@ async fn startup(app: AppHandle, first_run: bool) {
     app::apply_login_item(&app);
     let page = account::check(&app).await;
     if page.status == 403 {
-        set_state(&app, State::Error, chatgpt::CHALLENGE);
-        chatgpt::show(&app);
+        app::refused(&app, chatgpt::check::PAGE_REFUSED, chatgpt::check::PAGE_NOTICE);
     } else if !page.signed_in {
         set_state(&app, State::Error, account::NOT_SIGNED_IN);
         ui::settings::open(&app);

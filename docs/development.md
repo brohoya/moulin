@@ -15,6 +15,8 @@ Native recording: WebKit gives the microphone only to a page that has the focus,
 
 Hold mode: the global shortcut plugin of Tauri reports the key-down and the key-up of the shortcut (macOS, Windows, and X11). The key-down starts the dictation, and the key-up stops it. A press shorter than 0.3 s cancels the dictation, so that no empty audio goes to ChatGPT. The hold mode needs no key hook and no Accessibility permission.
 
+Cloudflare check: Cloudflare protects chatgpt.com from bots. Sometimes it refuses a request with HTTP 403 and the header `cf-mitigated: challenge`, until a page passes a check: a short Cloudflare script, and sometimes a click on a box. The light page is plain text, so it cannot run the check. After a refusal, Moulin loads the full page in the hidden window. It waits up to 10 s for a new value of the pass cookie `cf_clearance`, then it sends the request again. If Cloudflare refuses again, Moulin shows the window. It waits up to 2 minutes, until the pass changes or the user closes the window, then it sends the request a last time. On macOS, Moulin hides itself after this step, so that the app of the user comes to the front again and gets the paste. The tray, the pop-up, and the settings window show each step. After a last refusal, the settings window opens with an explanation and the next step, and Moulin keeps the recording. On October 29, 2026, Cloudflare refused one upload of the Electron version, and the full page passed the check in about 1 s, without a click.
+
 Code:
 
 | Path | What it does |
@@ -25,7 +27,7 @@ Code:
 | [hotkey.rs](../src-tauri/src/hotkey.rs) | The global shortcut, and Esc during a recording. |
 | [account.rs](../src-tauri/src/account.rs) | The check of the ChatGPT session, the sign-in, and the sign-out. |
 | [ui/](../src-tauri/src/ui/) | The tray icon and its menu, the pop-up, and the settings window with its commands. |
-| [chatgpt/](../src-tauri/src/chatgpt/) | The hidden chatgpt.com window, the bridge that runs code in its page, and the upload. |
+| [chatgpt/](../src-tauri/src/chatgpt/) | The hidden chatgpt.com window, the bridge that runs code in its page, the upload, and the Cloudflare check. |
 | [audio/](../src-tauri/src/audio/) | The recorder, the resampler, and the WAV files. |
 | [paste.rs](../src-tauri/src/paste.rs) | The paste on each system. |
 | [platform/](../src-tauri/src/platform/) | The parts that differ for each system: the pop-up window, the macOS permissions, and the login item. |
@@ -55,6 +57,7 @@ You need Node.js, Rust (install it with [rustup](https://rustup.rs)), and the [T
 | `npm run e2e` | The E2E test in the installed (or built) app. It quits a running Moulin and starts it again after. |
 | `npm run e2e:dev` | The same test from the sources. |
 | `npm run e2e -- --hold` | The E2E test in hold mode (macOS, a shortcut from F1 to F20): it holds the key of the shortcut during the sample, then releases it. |
+| `npm run e2e -- --challenge` | The E2E test with a fake Cloudflare refusal of the first upload. It checks that the full page runs the check in the hidden window, that the second upload passes, that the pop-up shows the full text of the check, and that the settings window shows the notice of a refusal. |
 | `npm run dist:mac`, `dist:win`, `dist:linux` | Builds the installers in `src-tauri/target/release/bundle/`. The release workflow gives them the names of the downloads. |
 | `npm run reinstall` | macOS: builds the app, signs it with the local certificate, replaces `~/Applications/Moulin.app`, and starts it. If the signature identity changed, it removes the old permissions, so that macOS asks again with clean entries. |
 | `npm run signing:setup` | macOS, one time: creates the local signing certificate in `~/Library/Keychains/moulin-signing.keychain-db`. The login keychain keeps only the password of that keychain. |
@@ -62,7 +65,7 @@ You need Node.js, Rust (install it with [rustup](https://rustup.rs)), and the [T
 | `npm run icons` | Makes all the images from the shapes in [docs/mill.js](mill.js): the app icon and the tray images in `src-tauri/icons`, the icon of the settings window, and the images of the website and the README. |
 | `npm run sample` | Makes `fixtures/fr-sample.wav` (48 kHz, mono, 16-bit) from `fixtures/fr-sample.txt` with `say` and ffmpeg. |
 
-The E2E test does one full dictation: start, stop, upload, clipboard. A second Moulin process with `--toggle` starts and stops the dictation, the same path as a system shortcut. On macOS, `npm run e2e` starts the app with `open`, so that macOS does not put the menu bar icon in the group of the terminal app. The recorder plays the sample WAV one time instead of the microphone, then gives silence. The test never pastes. It writes `artifacts/e2e-<time>.json`, the recording `artifacts/e2e-<time>.wav`, and a picture of the pop-up in each state (macOS only, a WebKit snapshot: the picture is empty while the screen is locked). It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, the tray states, the pop-up states (also inside the pop-up page, with its timer), and the silence after the end of the sample. It needs a signed-in session and ffmpeg, and it replaces the clipboard content. In hold mode, the test posts its key events from a private event source: an event of the HID system state can get a key-up from macOS at the next input of the user, because no physical key is down.
+The E2E test does one full dictation: start, stop, upload, clipboard. A second Moulin process with `--toggle` starts and stops the dictation, the same path as a system shortcut. On macOS, `npm run e2e` starts the app with `open`, so that macOS does not put the menu bar icon in the group of the terminal app. The recorder plays the sample WAV one time instead of the microphone, then gives silence. The test never pastes. It writes `artifacts/e2e-<time>.json`, the recording `artifacts/e2e-<time>.wav`, and a picture of the pop-up in each state (macOS only, a WebKit snapshot: the picture is empty while the screen is locked). It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, the tray states, the pop-up states (also inside the pop-up page, with its timer), and the silence after the end of the sample. On macOS, it also checks that the pop-up shows at the bottom center of the screen that the user works on (a separate script finds that screen), that the pill is red only under the pointer, and that the settings window has the height of its content, with a picture of each. It needs a signed-in session and ffmpeg, and it replaces the clipboard content. In hold mode, the test posts its key events from a private event source: an event of the HID system state can get a key-up from macOS at the next input of the user, because no physical key is down.
 
 The folder `docs` is also the website (GitHub Pages, branch `main`, folder `/docs`). To see it on this computer, run `python3 -m http.server -d docs 8000`. [docs/install.sh](install.sh) is the install command.
 
@@ -121,7 +124,7 @@ Moulin sends the same constant values for `originator`, `x-openai-web-frontend`,
 | WAV works | True (HTTP 200). |
 | The backend ignores `language` | True: `language=en` with French audio gave French text. |
 | No sentinel, proof-of-work, or Turnstile token | True. |
-| A fetch from the page gets no Cloudflare 403 | True on the light page. A request from outside the page is not tested, because all requests must come from the page. |
+| A fetch from the page gets no Cloudflare 403 | Usually true on the light page. On October 29, 2026, Cloudflare refused one upload (see "Cloudflare check"). A request from outside the page is not tested, because all requests must come from the page. |
 | Long audio | 101 s of speech: HTTP 200 in 5.2 s, no missing text. 151 s made of five repeats of the sample: one repeat is missing in the text. |
 | `usage_limit_reached`, `usage_not_included` | Not seen. Moulin shows a message for each. |
 | Word error rate of the dictation button of the page | 0.063, with the same sample. |

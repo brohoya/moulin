@@ -8,10 +8,7 @@ use crate::{
     settings::{Patch, Settings},
 };
 use serde::Serialize;
-use tauri::{
-    AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder,
-    webview::{PageLoadEvent, PermissionResponse},
-};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, webview::PermissionResponse};
 
 pub const LABEL: &str = "settings";
 
@@ -22,6 +19,7 @@ pub struct Snapshot {
     settings: Settings,
     state: State,
     status: String,
+    notice: Option<&'static str>,
     signed_in: bool,
     hotkey_error: Option<String>,
     version: String,
@@ -35,6 +33,7 @@ fn snapshot(app: &AppHandle) -> Snapshot {
         settings: core.settings.clone(),
         state: core.state,
         status: core.status.clone(),
+        notice: core.notice,
         signed_in: core.signed_in,
         hotkey_error: core.hotkey_error.clone(),
         version: app.package_info().version.to_string(),
@@ -60,25 +59,24 @@ pub fn open(app: &AppHandle) {
         let _ = window.set_focus();
         return;
     }
+    if let Err(err) = create(app) {
+        eprintln!("Cannot open the settings: {err}");
+    }
+}
+
+/// Creates the settings window, hidden. Its page gives the window the height of the content, then shows it, so that
+/// the window never shows empty or with empty space (see settings.js).
+pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let builder = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("settings/settings.html".into()))
         .title("Moulin")
         .inner_size(560.0, 800.0)
         .resizable(false)
         .maximizable(false)
         .visible(false)
-        .on_permission_request(|_, _| PermissionResponse::Deny)
-        // Show the window when its page is ready, so that it never shows empty.
-        .on_page_load(|window, payload| {
-            if payload.event() == PageLoadEvent::Finished {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-        });
+        .on_permission_request(|_, _| PermissionResponse::Deny);
     #[cfg(target_os = "macos")]
     let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true);
-    if let Err(err) = builder.build() {
-        eprintln!("Cannot open the settings: {err}");
-    }
+    builder.build()
 }
 
 #[tauri::command]

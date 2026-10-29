@@ -125,26 +125,29 @@ body {
   display: flex;
 }
 
-/* A click on the pill stops the dictation. On hover, the pill turns red to show it. */
+/* A click on the pill stops the dictation. Under the pointer, the pill turns red to show it.
+   overlay.js sets data-hover, because :hover stays on in a window that is never the key window. */
 .pill[data-state="recording"] {
   cursor: pointer;
 }
 
-.pill[data-state="recording"]:hover {
+.pill[data-state="recording"][data-hover] {
   box-shadow: 0 3px 9px rgba(4, 10, 7, 0.4), inset 0 0 0 1.5px var(--signal);
 }
 
-.pill[data-state="recording"]:hover .bars i {
+.pill[data-state="recording"][data-hover] .bars i {
   background: var(--signal);
 }
 
-.pill[data-state="recording"]:hover .time {
+.pill[data-state="recording"][data-hover] .time {
   color: var(--signal);
 }
 
+/* overflow: hidden clips the text to its line box, so the line box must hold the descenders (g, p, y). */
 .text {
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 20px;
   animation: appear-text 0.24s var(--ease);
 }
 

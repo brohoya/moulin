@@ -1,11 +1,36 @@
 //! Windows and Linux: the permissions need no check, and the pop-up needs no change. The login item is different
 //! on each system.
-use tauri::WebviewWindow;
+use tauri::{PhysicalPosition, WebviewWindow};
 
 pub fn setup_overlay(_window: &WebviewWindow) {}
 
 pub fn show_inactive(window: &WebviewWindow) {
     let _ = window.show();
+}
+
+/// Puts the pop-up at the bottom center of the screen with the mouse pointer, `margin` points above the bottom of the
+/// work area (the area without the taskbar).
+/// Windows and Linux give the pointer and the screens in pixels.
+pub fn place_overlay(window: &WebviewWindow, margin: f64) {
+    let Ok(cursor) = window.cursor_position() else { return };
+    let monitor = window.monitor_from_point(cursor.x, cursor.y).ok().flatten().or_else(|| window.primary_monitor().ok().flatten());
+    let (Some(monitor), Ok(size), Ok(scale)) = (monitor, window.outer_size(), window.scale_factor()) else { return };
+    // The size in pixels on the target screen, which can have another scale.
+    let size = size.to_logical::<f64>(scale).to_physical::<i32>(monitor.scale_factor());
+    let area = monitor.work_area();
+    let x = area.position.x + (area.size.width as i32 - size.width) / 2;
+    let y = area.position.y + area.size.height as i32 - size.height - (margin * monitor.scale_factor()).round() as i32;
+    let _ = window.set_position(PhysicalPosition::new(x, y));
+}
+
+/// The mouse pointer in the window, in logical pixels from the top-left corner of the window, while the pointer is
+/// over the window.
+pub fn pointer_in(window: &WebviewWindow) -> Option<(f64, f64)> {
+    let cursor = window.cursor_position().ok()?;
+    let (origin, size, scale) = (window.outer_position().ok()?, window.outer_size().ok()?, window.scale_factor().ok()?);
+    let (x, y) = (cursor.x - f64::from(origin.x), cursor.y - f64::from(origin.y));
+    let inside = (0.0..=f64::from(size.width)).contains(&x) && (0.0..=f64::from(size.height)).contains(&y);
+    inside.then_some((x / scale, y / scale))
 }
 
 pub async fn microphone_allowed() -> bool {

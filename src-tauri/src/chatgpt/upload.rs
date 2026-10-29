@@ -1,10 +1,17 @@
 //! The upload of a recording: the page sends it to /backend-api/transcribe, and Moulin reads the result.
-use super::{CHALLENGE, HOME, Kind, evaluate, kind, load, on_chatgpt, start};
+use super::{
+    Kind,
+    check::{self, Step},
+    evaluate, kind, on_chatgpt, start,
+};
 use crate::audio::Recording;
 use base64::Engine;
 use serde::Serialize;
 use serde_json::{Value, json};
-use std::time::Duration;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 use tauri::AppHandle;
 
 /// The time limit of the request in the page, in ms.
@@ -65,10 +72,18 @@ pub struct Outcome {
     pub cf_mitigated: Option<String>,
     pub message: String,
     pub retry: bool,
+    /// Cloudflare refused the request (see check.rs).
     pub challenge: bool,
-    pub show_window: bool,
     pub attempts: u32,
     pub page: Option<Kind>,
+}
+
+/// The E2E test: the next upload gets a refusal of Cloudflare, and sends no request.
+static FAKE_REFUSAL: AtomicBool = AtomicBool::new(false);
+
+/// The E2E test: the next upload gets a refusal of Cloudflare without a request, so that Moulin runs the check.
+pub fn fake_refusal() {
+    FAKE_REFUSAL.store(true, Ordering::Relaxed);
 }
 
 fn upload_code(recording: &Recording, session_id: &str) -> String {
@@ -103,7 +118,7 @@ fn classify(raw: &Value) -> Outcome {
     } else if out.status == 403 && out.cf_mitigated.is_some() {
         out.retry = true;
         out.challenge = true;
-        out.message = CHALLENGE.into();
+        out.message = check::UPLOAD_REFUSED.into();
     } else if out.status == 429 {
         out.message = "ChatGPT limits the requests (HTTP 429). Try again later.".into();
     } else {
@@ -114,29 +129,37 @@ fn classify(raw: &Value) -> Outcome {
     out
 }
 
-/// One upload, and a maximum of one automatic retry. A retry gets a new attempt_id.
-pub async fn transcribe(app: &AppHandle, recording: &Recording) -> Outcome {
-    let code = upload_code(recording, &uuid::Uuid::new_v4().to_string());
-    let once = || async {
+/// One upload. A network or server error gets one more attempt. After a refusal of Cloudflare, each step of the check
+/// gets one more attempt. `on_check` gets each step before it starts, and None when the upload starts again after the
+/// step. Each attempt gets a new attempt_id.
+pub async fn transcribe(app: &AppHandle, recording: &Recording, on_check: impl Fn(Option<Step>)) -> Outcome {
+    let code = &upload_code(recording, &uuid::Uuid::new_v4().to_string());
+    let attempt = async |attempts: u32| {
         if !on_chatgpt(app) {
             start(app).await;
         }
-        match evaluate(app, &code, Duration::from_millis(TIMEOUT_MS + 10_000)).await {
-            Ok(raw) => classify(&raw),
-            Err(err) => classify(&json!({ "stage": "page", "status": 0, "code": err })),
-        }
+        let outcome = if FAKE_REFUSAL.swap(false, Ordering::Relaxed) {
+            classify(&json!({ "stage": "transcribe", "status": 403, "cfMitigated": "challenge" }))
+        } else {
+            match evaluate(app, code, Duration::from_millis(TIMEOUT_MS + 10_000)).await {
+                Ok(raw) => classify(&raw),
+                Err(err) => classify(&json!({ "stage": "page", "status": 0, "code": err })),
+            }
+        };
+        Outcome { attempts, page: kind(app), ..outcome }
     };
-    let mut result = Outcome { attempts: 1, ..once().await };
-    if !result.ok && result.retry {
-        if result.challenge && kind(app) != Some(Kind::Light) {
-            result.show_window = true;
-            return result;
+    let mut result = attempt(1).await;
+    if result.retry && !result.challenge {
+        result = attempt(2).await;
+    }
+    for step in Step::ALL {
+        if !result.challenge {
+            break;
         }
-        if result.challenge {
-            load(app, HOME).await;
-        }
-        result = Outcome { attempts: 2, page: kind(app), ..once().await };
-        result.show_window = result.challenge;
+        on_check(Some(step));
+        check::run(app, step).await;
+        on_check(None);
+        result = attempt(result.attempts + 1).await;
     }
     result
 }

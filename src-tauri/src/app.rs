@@ -1,6 +1,8 @@
 //! The shared state of Moulin, and the status that the tray, the pop-up, and the settings window show.
 use crate::{
-    audio, chatgpt, dictation,
+    audio,
+    chatgpt::{self, check},
+    dictation,
     options::{Mode, Options},
     platform,
     settings::{self, HotkeyMode, Settings},
@@ -89,6 +91,8 @@ pub struct Core {
     pub state: State,
     /// The text of the state: the first item of the menu, the tooltip of the tray, and the settings window.
     pub status: String,
+    /// A short explanation in the settings window, for example after a refusal of Cloudflare. A new state clears it.
+    pub notice: Option<&'static str>,
     pub signed_in: bool,
     /// The reason why the shortcut does not work, for the settings window.
     pub hotkey_error: Option<String>,
@@ -161,10 +165,39 @@ pub fn set_state(app: &AppHandle, next: State, text: impl Into<String>) {
         let mut core = moulin(app).core();
         core.state = next;
         core.status = text;
+        core.notice = None;
     }
     tray::update(app);
     ui::settings::push_status(app);
     moulin(app).emit(Event::State(next));
+}
+
+/// Shows a short explanation in the settings window, until the next change of the state.
+pub fn set_notice(app: &AppHandle, notice: &'static str) {
+    moulin(app).core().notice = Some(notice);
+    ui::settings::push_status(app);
+}
+
+/// Shows a step of the Cloudflare check: the state "transcribing" (Moulin is busy), the status, and the explanation in
+/// the settings window. While the user sees the ChatGPT window, the pop-up hides.
+pub fn show_check(app: &AppHandle, step: check::Step) {
+    let status = match step {
+        check::Step::Hidden => check::WAITING,
+        check::Step::Shown => check::ASKING,
+    };
+    set_state(app, State::Transcribing, status);
+    match step {
+        check::Step::Hidden => overlay::set(app, View::Transcribing, status, None),
+        check::Step::Shown => overlay::hide(app),
+    }
+    set_notice(app, check::CHECK_NOTICE);
+}
+
+/// Shows the last refusal of Cloudflare: the error, and the explanation in the settings window.
+pub fn refused(app: &AppHandle, message: &str, notice: &'static str) {
+    fail(app, message, Duration::from_secs(4));
+    set_notice(app, notice);
+    ui::settings::open(app);
 }
 
 /// The state "idle", with the text that tells how to dictate.

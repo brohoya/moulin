@@ -1,9 +1,11 @@
-//! The hidden chatgpt.com window: the sign-in, the light page, and the upload (see upload.rs).
+//! The hidden chatgpt.com window: the sign-in, the light page, the upload (see upload.rs), and the Cloudflare check
+//! (see check.rs).
 mod bridge;
+pub mod check;
 mod upload;
 
 pub use bridge::evaluate;
-pub use upload::{Outcome, transcribe};
+pub use upload::{Outcome, fake_refusal, transcribe};
 
 use serde::Serialize;
 use std::{
@@ -24,12 +26,12 @@ pub const HOME: &str = "https://chatgpt.com/";
 /// A small chatgpt.com document. The upload needs only the origin and the cookies.
 const LIGHT: &str = "https://chatgpt.com/robots.txt";
 const LABEL: &str = "chatgpt";
+/// The title of the window for the sign-in. The Cloudflare check gives it another title.
+const SIGN_IN_TITLE: &str = "Sign in to ChatGPT - Moulin";
 /// WebKit reports no failed load, so a load that does not finish in this time counts as failed.
 const LOAD_TIMEOUT: Duration = Duration::from_secs(20);
 /// The session of chatgpt.com: one cookie, or several cookies with a suffix (".0", ".1") when it is long.
 const SESSION_COOKIE: &str = "__Secure-next-auth.session-token";
-/// The message when Cloudflare shows a check instead of the page.
-pub const CHALLENGE: &str = "Cloudflare asks for a check. Complete it in the ChatGPT window.";
 /// The website data store of the window on macOS: it keeps the chatgpt.com session apart from the pages of Moulin.
 /// WebKit has stores with an identifier on macOS 14 or later. On macOS 13, the window uses the default store of the app.
 #[cfg(target_os = "macos")]
@@ -104,7 +106,7 @@ fn on_chatgpt(app: &AppHandle) -> bool {
 pub fn create(app: &AppHandle, allow_media: bool, script: Option<&str>) -> tauri::Result<()> {
     let handle = app.clone();
     let mut builder = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::External(parse("about:blank")))
-        .title("Sign in to ChatGPT - Moulin")
+        .title(SIGN_IN_TITLE)
         .inner_size(1000.0, 820.0)
         .visible(false)
         .on_permission_request(move |_, kind| match kind {
@@ -217,6 +219,7 @@ pub async fn sign_in(app: &AppHandle) -> bool {
     let mut closed = closes(app);
     let mut loads = state(app).loads.subscribe();
     loads.borrow_and_update();
+    let _ = w.set_title(SIGN_IN_TITLE);
     show(app);
     let _ = w.navigate(parse(HOME));
     loop {

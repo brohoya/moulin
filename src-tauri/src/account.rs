@@ -1,7 +1,8 @@
 //! The ChatGPT account of Moulin: the check of the session, the sign-in, and the sign-out.
 use crate::{
-    app::{State, moulin, set_ready, set_state},
-    chatgpt, ui,
+    app::{self, State, moulin, set_ready, set_state},
+    chatgpt::{self, check::Step},
+    ui::{self, overlay},
 };
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
@@ -9,9 +10,27 @@ use tokio::sync::oneshot;
 
 pub const NOT_SIGNED_IN: &str = "Not signed in to ChatGPT";
 
-/// Opens the light page, and keeps the result: the session has a token or not.
+/// Opens the light page, and keeps the result: the session has a token or not. When Cloudflare refuses the page, the
+/// full page runs the check (see chatgpt/check.rs), and Moulin opens the light page again after each step. After the
+/// check, the state and its text come back.
 pub async fn check(app: &AppHandle) -> chatgpt::Page {
-    let page = chatgpt::start(app).await;
+    let mut page = chatgpt::start(app).await;
+    if page.status == 403 {
+        let (state, status) = {
+            let core = moulin(app).core();
+            (core.state, core.status.clone())
+        };
+        for step in Step::ALL {
+            app::show_check(app, step);
+            chatgpt::check::run(app, step).await;
+            page = chatgpt::start(app).await;
+            if page.status != 403 {
+                break;
+            }
+        }
+        overlay::hide(app);
+        set_state(app, state, status);
+    }
     moulin(app).core().signed_in = page.signed_in;
     page
 }

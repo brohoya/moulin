@@ -96,9 +96,20 @@ h1 svg { height: 25px; width: auto; }
 .badge[data-kind="warn"]::before { background: var(--warn); }
 .badge[data-kind="error"]::before { background: var(--error); }
 
-main { padding: 6px 24px 14px; }
+/* The window has the height of the content (see settings.js), so the space under the content is the bottom padding. */
+main { padding: 6px 24px 24px; }
 
 .status { margin: 0 4px 4px; color: var(--muted); min-height: 1.4em; }
+
+/* A short explanation, for example after a refusal of Cloudflare. */
+.notice {
+  margin: 2px 0 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--caution);
+  box-shadow: inset 3px 0 0 var(--warn);
+  font-size: 12px;
+}
 
 h2 {
   margin: 10px 4px 6px;

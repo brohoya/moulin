@@ -91,29 +91,27 @@ fn lock(seen: &Mutex<Seen>) -> MutexGuard<'_, Seen> {
 async fn picture(app: AppHandle, seen: Arc<Mutex<Seen>>, view: View, file: PathBuf) {
     let delay = if view == View::Recording { 1500 } else { 350 };
     tokio::time::sleep(Duration::from_millis(delay)).await;
-    let taken = match overlay::window(&app) {
+    let value = match overlay::window(&app) {
         Some(window) => {
-            let state = page_state(&window).await;
+            let state = page_value(&window, PAGE_STATE).await;
             lock(&seen).pages.insert(view.as_str().into(), state);
-            platform::snapshot_png(&window).await
+            save_picture(&window, &file).await
         }
-        None => Err("no pop-up".into()),
-    };
-    let value = match taken.and_then(|png| std::fs::write(&file, png).map_err(|err| err.to_string())) {
-        Ok(()) => json!(file_name(&file)),
-        Err(err) => json!(format!("not taken: {err}")),
+        None => json!("not taken: no pop-up"),
     };
     lock(&seen).pictures.insert(view.as_str().into(), value);
 }
 
-/// What the pop-up page shows: the state of the pill, its text, and the time of the recording.
+/// What the pop-up page shows: the state of the pill, its text, the time of the recording, and the hover.
 /// The time grows only with the level events of the recorder, so it also proves that they arrive.
-async fn page_state(window: &WebviewWindow) -> Value {
+const PAGE_STATE: &str = "({ state: document.getElementById('pill').dataset.state, text: document.getElementById('text').textContent, \
+                          time: document.getElementById('time').textContent, hover: document.getElementById('pill').hasAttribute('data-hover') })";
+
+/// Runs an expression in the page of a window, and returns its value (null if the page gives no answer).
+pub async fn page_value(window: &WebviewWindow, expression: &str) -> Value {
     let (tx, rx) = oneshot::channel();
     let tx = Mutex::new(Some(tx));
-    let code = "JSON.stringify({ state: document.getElementById('pill').dataset.state, \
-                text: document.getElementById('text').textContent, time: document.getElementById('time').textContent })";
-    let sent = window.eval_with_callback(code, move |json| {
+    let sent = window.eval_with_callback(format!("JSON.stringify({expression})"), move |json| {
         if let Some(tx) = tx.lock().unwrap().take() {
             let _ = tx.send(json);
         }
@@ -124,5 +122,13 @@ async fn page_state(window: &WebviewWindow) -> Value {
     match tokio::time::timeout(Duration::from_secs(2), rx).await {
         Ok(Ok(json)) => serde_json::from_str::<String>(&json).ok().and_then(|text| serde_json::from_str(&text).ok()).unwrap_or(Value::Null),
         _ => Value::Null,
+    }
+}
+
+/// Saves a picture of the page of a window (macOS only). Returns the file name, or the reason why it is missing.
+pub async fn save_picture(window: &WebviewWindow, file: &Path) -> Value {
+    match platform::snapshot_png(window).await.and_then(|png| std::fs::write(file, png).map_err(|err| err.to_string())) {
+        Ok(()) => json!(file_name(file)),
+        Err(err) => json!(format!("not taken: {err}")),
     }
 }

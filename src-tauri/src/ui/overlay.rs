@@ -8,18 +8,20 @@ use serde::Serialize;
 use serde_json::json;
 use std::time::Duration;
 use tauri::{
-    AppHandle, Emitter, LogicalPosition, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     async_runtime::{JoinHandle, spawn},
     utils::config::BackgroundThrottlingPolicy,
     webview::PermissionResponse,
 };
 
-const LABEL: &str = "overlay";
+pub const LABEL: &str = "overlay";
 /// The size of the pop-up, in points.
 const WIDTH: f64 = 320.0;
 const HEIGHT: f64 = 60.0;
 /// The space between the pop-up and the bottom of the screen, in points.
-const MARGIN: f64 = 28.0;
+pub const MARGIN: f64 = 28.0;
+/// The time between two checks of the mouse pointer while the pop-up records.
+const POINTER_CHECK: Duration = Duration::from_millis(50);
 
 /// What the pop-up shows. Its page gets the name in lower case.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -44,11 +46,15 @@ impl View {
     }
 }
 
-/// Shown or not, and the timer that hides the pop-up.
+/// Shown or not, the timer that hides the pop-up, and the checks of the pointer.
 #[derive(Default)]
 pub struct Visibility {
     shown: bool,
     hide_timer: Option<JoinHandle<()>>,
+    /// Sends the pointer position to the page while the pop-up records (see `track_pointer`).
+    pointer_timer: Option<JoinHandle<()>>,
+    /// The last pointer position that the page got.
+    pointer: Option<(f64, f64)>,
 }
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
@@ -98,6 +104,14 @@ pub fn set(app: &AppHandle, view: View, text: &str, hide_after: Option<Duration>
                 hide(&app);
             })
         });
+        if show && view == View::Recording {
+            if visibility.pointer_timer.is_none() {
+                visibility.pointer = None;
+                visibility.pointer_timer = Some(spawn(track_pointer(app.clone())));
+            }
+        } else if let Some(timer) = visibility.pointer_timer.take() {
+            timer.abort();
+        }
         (show, was_shown)
     };
     let Some(window) = window(app) else { return };
@@ -105,7 +119,7 @@ pub fn set(app: &AppHandle, view: View, text: &str, hide_after: Option<Duration>
     if !show {
         let _ = window.hide();
     } else if !was_shown {
-        position(app, &window);
+        platform::place_overlay(&window, MARGIN);
         platform::show_inactive(&window);
     }
     moulin(app).emit(Event::Overlay { view, text: text.into(), visible: show });
@@ -120,23 +134,28 @@ pub fn level(app: &AppHandle, level: f32, ms: u64) {
     let _ = app.emit_to(LABEL, "overlay:level", json!({ "level": level, "ms": ms }));
 }
 
-/// Puts the pop-up at the bottom center of the screen with the mouse pointer.
-fn position(app: &AppHandle, window: &WebviewWindow) {
-    let Ok(cursor) = app.cursor_position() else { return };
-    let monitor = app.monitor_from_point(cursor.x, cursor.y).ok().flatten().or_else(|| app.primary_monitor().ok().flatten());
-    let Some(monitor) = monitor else { return };
-    let area = monitor.work_area();
-    let scale = monitor.scale_factor();
-    // macOS places windows in points, the other systems in pixels.
-    if platform::IS_MAC {
-        let (x, y) = (f64::from(area.position.x) / scale, f64::from(area.position.y) / scale);
-        let (width, height) = (f64::from(area.size.width) / scale, f64::from(area.size.height) / scale);
-        let _ = window.set_position(LogicalPosition::new((x + (width - WIDTH) / 2.0).round(), (y + height - HEIGHT - MARGIN).round()));
-    } else {
-        let (width, height) = ((WIDTH * scale).round() as i32, (HEIGHT * scale).round() as i32);
-        let x = area.position.x + (area.size.width as i32 - width) / 2;
-        let y = area.position.y + area.size.height as i32 - height - (MARGIN * scale).round() as i32;
-        let _ = window.set_position(PhysicalPosition::new(x, y));
+/// The pill turns red under the pointer, because a click on it stops the dictation. WebKit does not report that the
+/// pointer leaves a window that is never the key window, so Moulin sends the pointer position to the page itself.
+async fn track_pointer(app: AppHandle) {
+    loop {
+        tokio::time::sleep(POINTER_CHECK).await;
+        on_main(&app, send_pointer);
+    }
+}
+
+/// Sends the pointer position to the page when it changes: points from the top-left corner of the pop-up, or null
+/// when the pointer is not over the pop-up.
+fn send_pointer(app: &AppHandle) {
+    let Some(window) = window(app) else { return };
+    let pointer = platform::pointer_in(&window);
+    let changed = {
+        let mut core = moulin(app).core();
+        let visibility = &mut core.overlay;
+        // A check that comes after the end of the recording sends nothing.
+        visibility.pointer_timer.is_some() && std::mem::replace(&mut visibility.pointer, pointer) != pointer
+    };
+    if changed {
+        let _ = app.emit_to(LABEL, "overlay:pointer", pointer.map(|(x, y)| json!({ "x": x, "y": y })));
     }
 }
 

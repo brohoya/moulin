@@ -5,17 +5,23 @@ mod tools;
 mod wer;
 
 use crate::{
-    app::{Event, Transcription, moulin},
+    app::{self, Event, Transcription, moulin},
     audio::Recording,
-    chatgpt,
+    chatgpt::{self, Kind, check},
     report::{self, file_name},
     settings::{HotkeyMode, Settings},
-    ui::overlay::View,
+    ui::{
+        self,
+        overlay::{self, View},
+    },
 };
-use observer::Observer;
-use serde_json::{Value, json};
+use observer::{Observer, page_value, save_picture};
+use serde_json::{Map, Value, json};
 use std::{fs, path::PathBuf, sync::Arc, time::Duration};
-use tauri::AppHandle;
+use tauri::{
+    AppHandle, Emitter,
+    async_runtime::{JoinHandle, spawn},
+};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tokio::sync::broadcast::{Receiver, error::RecvError};
 
@@ -39,6 +45,8 @@ struct Test {
     app: AppHandle,
     settings: Settings,
     hold: bool,
+    /// "--challenge": the first upload gets a fake refusal of Cloudflare.
+    challenge: bool,
     sample: PathBuf,
     /// The text of the sample: the file next to the sample, with the extension "txt".
     reference: String,
@@ -53,6 +61,7 @@ impl Test {
         let me = moulin(&app);
         let settings = me.settings();
         let hold = settings.mode == HotkeyMode::Hold;
+        let challenge = me.opts.challenge;
         let (sample, out_dir) = (me.opts.sample.clone(), me.opts.out_dir.clone());
         let reference = fs::read_to_string(sample.with_extension("txt")).unwrap_or_default().trim().to_string();
         let (test, trigger) = if hold {
@@ -66,6 +75,7 @@ impl Test {
                 "a second Moulin process with --toggle (the path of a system shortcut)".to_string(),
             )
         };
+        let test = if challenge { format!("{test}, after a fake Cloudflare refusal of the first upload") } else { test.to_string() };
         let started_at = report::iso_now();
         let report = json!({
             "test": test,
@@ -78,7 +88,7 @@ impl Test {
             "page": page,
         });
         let stamp = report::stamp(&started_at);
-        Self { app, settings, hold, sample, reference, out_dir, stamp, report, failures: Vec::new() }
+        Self { app, settings, hold, challenge, sample, reference, out_dir, stamp, report, failures: Vec::new() }
     }
 
     /// The steps of the test. An error stops the test, and the report keeps the results of the steps before it.
@@ -96,11 +106,21 @@ impl Test {
         self.report["memoryMB"] = json!({ "app": tools::own_memory_mb(), "lightPage": light_page, "fullPage": full_page });
         let sample_s = tools::seconds(&self.sample).await?;
         self.report["sample"] = json!({ "file": file_name(&self.sample), "seconds": sample_s });
+        let check_pill = self.challenge.then(|| self.watch_check_pill());
+        if self.challenge {
+            chatgpt::fake_refusal();
+        }
         let (recording, transcription) = self.dictate(sample_s).await?;
         let clipboard = self.app.clipboard().read_text().unwrap_or_default();
         self.check_recording(&recording, sample_s).await;
         self.check_upload(&transcription, page, &clipboard);
+        if let Some(check_pill) = check_pill {
+            self.check_cloudflare(&transcription, check_pill.await.unwrap_or(Value::Null));
+            // The settings window shows the notice of a last refusal, so that its check covers the notice too.
+            app::set_notice(&self.app, check::UPLOAD_NOTICE);
+        }
         self.check_overlay(observer).await;
+        self.check_settings_window().await;
         Ok(())
     }
 
@@ -111,7 +131,12 @@ impl Test {
         let mut started = events.subscribe();
         self.trigger(true).await?;
         next(&mut started, "started", 15_000, |e| matches!(e, Event::Started).then_some(())).await?;
-        tokio::time::sleep(Duration::from_secs_f64(sample_s + TAIL_S)).await;
+        let end = tokio::time::Instant::now() + Duration::from_secs_f64(sample_s + TAIL_S);
+        self.check_placement().await;
+        // After the picture of the recording state (see observer.rs).
+        tokio::time::sleep(Duration::from_millis(2500)).await;
+        self.check_hover().await;
+        tokio::time::sleep_until(end).await;
         let mut stopped = events.subscribe();
         self.trigger(false).await?;
         let audio = |e: &Event| match e {
@@ -136,6 +161,135 @@ impl Test {
         let ms = tools::toggle_from_outside().await?;
         self.report["toggleProcessMs"][if start { "start" } else { "stop" }] = json!(ms);
         Ok(())
+    }
+
+    /// The pop-up shows at the bottom center of the screen that the user works on (macOS only). A separate script finds
+    /// that screen and the frame of the pop-up (see tools.rs).
+    async fn check_placement(&mut self) {
+        let placement = match tools::overlay_placement().await {
+            Ok(placement) => placement,
+            Err(err) => json!({ "error": err }),
+        };
+        let near = |key: &str, value: f64| placement[key].as_f64().is_some_and(|v| (v - value).abs() <= 1.0);
+        let placed = placement["popupScreen"].is_string()
+            && placement["popupScreen"] == placement["expectedScreen"]
+            && near("offCenter", 0.0)
+            && near("bottomGap", overlay::MARGIN);
+        if !placement.is_null() && !placed {
+            self.fail(format!("The pop-up is not at the bottom center of the screen that the user works on: {placement}"));
+        }
+        self.report["overlayPlacement"] = placement;
+    }
+
+    /// The pill is red only under the pointer. The test sends pointer positions to the page, as Moulin does during a
+    /// recording, and reads the pill: over the pill, beside the pill in the window, and away from the window.
+    /// Do not move the pointer over the pop-up during the test.
+    async fn check_hover(&mut self) {
+        let Some(window) = overlay::window(&self.app) else { return };
+        // The pill is at the center of the window (320 by 60 points), 40 points high.
+        let steps = [("overPill", Some((160.0, 30.0)), true), ("besidePill", Some((4.0, 4.0)), false), ("away", None, false)];
+        let mut hover = Map::new();
+        let mut follows = true;
+        for (name, pointer, expected) in steps {
+            let _ = self.app.emit_to(overlay::LABEL, "overlay:pointer", pointer.map(|(x, y): (f64, f64)| json!({ "x": x, "y": y })));
+            tokio::time::sleep(Duration::from_millis(150)).await;
+            let value = page_value(&window, "document.getElementById('pill').hasAttribute('data-hover')").await;
+            follows &= value == expected;
+            hover.insert(name.into(), value);
+            if expected {
+                hover.insert("picture".into(), save_picture(&window, &self.picture_file("pill-hover")).await);
+            }
+        }
+        if !follows {
+            self.fail(format!("The pill does not follow the pointer: {}", Value::Object(hover.clone())));
+        }
+        self.report["hover"] = Value::Object(hover);
+    }
+
+    /// The settings window has the height of its content, with no empty space at the bottom. The test modes do not
+    /// open the window, so the test creates it, waits until its page shows it, and takes a picture.
+    async fn check_settings_window(&mut self) {
+        let window = match ui::settings::create(&self.app) {
+            Ok(window) => window,
+            Err(err) => {
+                self.fail(format!("The settings window does not open: {err}"));
+                return;
+            }
+        };
+        let mut shown = false;
+        for _ in 0..50 {
+            shown = window.is_visible().unwrap_or(false);
+            if shown {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        // The list of microphones loads after the window shows.
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let notice = "document.getElementById('notice').hidden ? null : document.getElementById('notice').textContent";
+        let sizes = page_value(
+            &window,
+            &format!("({{ inner: innerHeight, content: document.body.getBoundingClientRect().height, notice: {notice} }})"),
+        )
+        .await;
+        let picture = save_picture(&window, &self.picture_file("settings")).await;
+        let _ = window.destroy();
+        let fits = match (sizes["inner"].as_f64(), sizes["content"].as_f64()) {
+            (Some(inner), Some(content)) => (inner - content.ceil()).abs() <= 1.0,
+            _ => false,
+        };
+        self.report["settingsWindow"] = json!({
+            "shown": shown,
+            "innerHeight": sizes["inner"],
+            "contentHeight": sizes["content"],
+            "fits": fits,
+            "notice": sizes["notice"],
+            "picture": picture,
+        });
+        if !shown || !fits {
+            self.fail(format!("The settings window does not show with the height of its content: {}", self.report["settingsWindow"]));
+        }
+        // --challenge: the run sets the notice of a last refusal before this check.
+        if self.challenge && sizes["notice"] != check::UPLOAD_NOTICE {
+            self.fail(format!("The settings window does not show the notice of the Cloudflare refusal: {}", sizes["notice"]));
+        }
+    }
+
+    /// --challenge: waits until the pop-up shows the Cloudflare check. Then it reads the text of the pill, and takes a
+    /// picture. The pill cuts a long text, so the test checks that the full text shows.
+    fn watch_check_pill(&self) -> JoinHandle<Value> {
+        let (app, file) = (self.app.clone(), self.picture_file("pill-check"));
+        let mut events = moulin(&app).events.subscribe();
+        spawn(async move {
+            loop {
+                match events.recv().await {
+                    Ok(Event::Overlay { text, visible: true, .. }) if text == check::WAITING => break,
+                    Ok(Event::Transcription(_)) | Err(RecvError::Closed) => return Value::Null,
+                    _ => {}
+                }
+            }
+            // The pill changes its width in 0.28 s.
+            tokio::time::sleep(Duration::from_millis(350)).await;
+            let Some(window) = overlay::window(&app) else { return Value::Null };
+            let text = "(() => { const t = document.getElementById('text'); \
+                        return { text: t.textContent, full: t.scrollWidth <= t.clientWidth }; })()";
+            let mut pill = page_value(&window, text).await;
+            pill["picture"] = save_picture(&window, &file).await;
+            pill
+        })
+    }
+
+    /// --challenge: after the fake refusal, the full page runs the check in the hidden window, and the second upload
+    /// passes. The pop-up shows the full text of the check.
+    fn check_cloudflare(&mut self, transcription: &Transcription, pill: Value) {
+        let outcome = &transcription.outcome;
+        self.report["cloudflare"] = json!({ "fakeRefusal": true, "attempts": outcome.attempts, "page": outcome.page, "pill": pill });
+        if !(outcome.ok && outcome.attempts == 2 && outcome.page == Some(Kind::Full)) {
+            self.fail(format!("Moulin did not pass the Cloudflare check in the hidden window: {}", self.report["cloudflare"]));
+        }
+        if pill["text"] != check::WAITING || pill["full"] != true {
+            self.fail(format!("The pop-up did not show the full text of the Cloudflare check: {pill}"));
+        }
     }
 
     /// The audio: speech during the sample, and silence after its end (the sample plays one time).
@@ -238,6 +392,10 @@ impl Test {
 
     fn audio_file(&self) -> PathBuf {
         self.out_dir.join(format!("e2e-{}.wav", self.stamp))
+    }
+
+    fn picture_file(&self, name: &str) -> PathBuf {
+        self.out_dir.join(format!("e2e-{}-{name}.png", self.stamp))
     }
 }
 
