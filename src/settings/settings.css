@@ -56,19 +56,17 @@ header {
 
 .icon { width: 52px; height: 52px; }
 
-.title { flex: 1; }
+h1 { display: flex; flex: 1; align-items: baseline; gap: 8px; margin: 0; line-height: 0; }
 
-h1 { display: flex; align-items: baseline; gap: 8px; margin: 0; line-height: 0; }
+/* The version gets the line height 0 of h1, so the title has the height of the wordmark. */
+.version { color: var(--muted); font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
 
-.version { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; }
-
-h1 svg { height: 25px; width: auto; }
+/* The viewBox starts at the top of the "l" and stops at the baseline. Thus the "l" is in the middle of the icon. */
+h1 svg { height: 30px; width: auto; overflow: visible; }
 
 .word-face { fill: var(--text); }
 
 .word-dot { fill: #ff3b30; }
-
-.title p { margin: 5px 0 0; color: var(--muted); }
 
 .badge {
   display: inline-flex;
