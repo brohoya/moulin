@@ -268,13 +268,20 @@ html.js .panel[hidden] { display: block; visibility: hidden; }
 .footer {
   position: relative;
   z-index: 1;
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
   padding: 56px var(--gutter) 28px;
   font-size: 16px;
   color: var(--credits);
 }
 
 .footer a { color: var(--credits-link); font-weight: 500; text-decoration: none; }
+/* The repository: a GitHub mark at the right of the credits. */
+.footer .repo { display: inline-flex; padding: 2px; border-radius: 50%; }
+.footer .repo svg { width: 20px; height: 20px; fill: currentColor; }
+.footer .repo:hover { opacity: 0.8; }
 .footer a:hover { text-decoration: underline; }
 
 /* ---------- The stacked page: the mill above, the words below. Keep this query equal to "stacked" in site.js. ---------- */
