@@ -1,4 +1,4 @@
-// Pastes the clipboard at the cursor of the active app: Cmd+V on macOS, Ctrl+V on Windows and Linux.
+//! Pastes the clipboard at the cursor of the active app: Cmd+V on macOS, Ctrl+V on Windows and Linux.
 use std::{
     io::{ErrorKind, Read},
     process::{Command, Stdio},
@@ -65,7 +65,7 @@ pub fn paste() -> Result<(), String> {
         .map_err(fail);
     }
     // Linux: xdotool on X11. On Wayland, wtype (wlroots desktops) or ydotool (needs its daemon).
-    let wayland = std::env::var("XDG_SESSION_TYPE").is_ok_and(|t| t == "wayland");
+    let wayland = crate::platform::wayland();
     let mut tools: Vec<(&str, Vec<&str>)> = Vec::new();
     if wayland {
         tools.push(("wtype", vec!["-M", "ctrl", "-k", "v", "-m", "ctrl"]));

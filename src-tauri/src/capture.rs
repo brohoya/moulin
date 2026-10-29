@@ -1,8 +1,8 @@
-// Capture mode (ground truth): the user does one dictation with the button of the chatgpt.com page.
-// WebKit gives the app no DevTools Protocol, so a script at the start of each page wraps fetch and records the request
-// to /backend-api/transcribe. It sees the headers of the page, not the headers that WebKit adds (cookie, user-agent).
-// The capture file keeps names and shapes, and no secret value.
-use crate::{chatgpt, e2e::iso_now, moulin};
+//! Capture mode (ground truth): the user does one dictation with the button of the chatgpt.com page.
+//! WebKit gives the app no DevTools Protocol, so a script at the start of each page wraps fetch and records the request
+//! to /backend-api/transcribe. It sees the headers of the page, not the headers that WebKit adds (cookie, user-agent).
+//! The capture file keeps names and shapes, and no secret value.
+use crate::{app::moulin, chatgpt, report};
 use serde_json::{Map, Value, json};
 use std::time::Duration;
 use tauri::AppHandle;
@@ -38,7 +38,7 @@ pub const SCRIPT: &str = r#"(() => {
   };
 })();"#;
 
-// Headers with a value that is not a secret. The capture file redacts all other values.
+/// Headers with a value that is not a secret. The capture file redacts all other values.
 const SAFE: [&str; 21] = [
     "accept",
     "accept-encoding",
@@ -63,7 +63,7 @@ const SAFE: [&str; 21] = [
     "server",
 ];
 
-// The message box is the only contenteditable element of the page (October 2026).
+/// The message box is the only contenteditable element of the page (October 2026).
 const CLEAR_COMPOSER: &str = "(() => {
   const box = document.querySelector('[contenteditable=\"true\"]');
   if (!box || !box.textContent.trim()) return false;
@@ -73,7 +73,7 @@ const CLEAR_COMPOSER: &str = "(() => {
   return !box.textContent.trim();
 })()";
 
-// Runs in the page. Finds where the page can read each header value. Returns the places, not the values.
+/// Runs in the page. Finds where the page can read each header value. Returns the places, not the values.
 const PAGE_SEARCH: &str = "async (targets) => {
   const found = {};
   const visit = (value, where) => {
@@ -120,21 +120,21 @@ fn boundary(text: &str) -> String {
     }
 }
 
-// The keys and the types of a JSON value, two levels deep. No values.
+/// The keys and the types of a JSON value, two levels deep. No values.
 fn shape(value: &Value, depth: u8) -> Value {
     match value {
         Value::Array(items) if depth > 0 => json!([items.first().map_or(json!("empty"), |v| shape(v, depth - 1))]),
         Value::Array(_) => json!("array"),
         Value::Object(map) if depth > 0 => Value::Object(map.iter().map(|(k, v)| (k.clone(), shape(v, depth - 1))).collect()),
-        Value::Object(_) => json!("object"),
+        // As in JavaScript: typeof null is "object".
+        Value::Object(_) | Value::Null => json!("object"),
         Value::String(_) => json!("string"),
         Value::Number(_) => json!("number"),
         Value::Bool(_) => json!("boolean"),
-        Value::Null => json!("object"),
     }
 }
 
-// The parts of the form: name, file name, and content type. A short text value stays (for example a language code).
+/// The parts of the form: name, file name, and content type. A short text value stays (for example a language code).
 fn form(parts: &Value) -> Value {
     let parts = parts.as_array().cloned().unwrap_or_default();
     json!(
@@ -143,10 +143,7 @@ fn form(parts: &Value) -> Value {
             .map(|part| {
                 let mut out = json!({ "name": part["name"], "filename": part["filename"], "contentType": part["contentType"] });
                 if let Some(value) = part["value"].as_str() {
-                    let b = value.as_bytes();
-                    let hex = |range: std::ops::Range<usize>| b[range].iter().all(u8::is_ascii_hexdigit);
-                    let uuid = b.len() >= 14 && hex(0..8) && b[8] == b'-' && hex(9..13) && b[13] == b'-';
-                    out["value"] = json!(if uuid {
+                    out["value"] = json!(if looks_like_uuid(value) {
                         "<uuid>".into()
                     } else if value.chars().count() <= 40 {
                         value.to_string()
@@ -160,7 +157,14 @@ fn form(parts: &Value) -> Value {
     )
 }
 
-// Where the page can read each secret header value. The values stay in this function.
+/// True if the text starts like a UUID: 8 and 4 hexadecimal digits, each with a "-" after it.
+fn looks_like_uuid(text: &str) -> bool {
+    let b = text.as_bytes();
+    let hex = |range: std::ops::Range<usize>| b[range].iter().all(u8::is_ascii_hexdigit);
+    b.len() >= 14 && hex(0..8) && b[8] == b'-' && hex(9..13) && b[13] == b'-'
+}
+
+/// Where the page can read each secret header value. The values stay in this function.
 async fn sources(app: &AppHandle, headers: &Value) -> Value {
     let mut targets = Map::new();
     for (name, value) in headers.as_object().cloned().unwrap_or_default() {
@@ -218,8 +222,8 @@ async fn record(app: &AppHandle, raw: &Value) -> Value {
 
 pub async fn run(app: AppHandle) {
     let out_dir = moulin(&app).opts.out_dir.clone();
-    let started_at = iso_now();
-    let mut report = json!({ "mode": "capture", "startedAt": started_at, "webview": tauri::webview_version().ok(), "requests": [] });
+    let started_at = report::iso_now();
+    let mut capture = json!({ "mode": "capture", "startedAt": started_at, "webview": tauri::webview_version().ok(), "requests": [] });
     let mut closes = chatgpt::closes(&app);
     chatgpt::show(&app);
     chatgpt::load(&app, chatgpt::HOME).await;
@@ -237,7 +241,7 @@ pub async fn run(app: AppHandle) {
         for raw in raws.as_array().cloned().unwrap_or_default() {
             let failed = raw["failed"].is_string();
             let entry = record(&app, &raw).await;
-            if let Some(list) = report["requests"].as_array_mut() {
+            if let Some(list) = capture["requests"].as_array_mut() {
                 list.push(entry);
             }
             done = Some(if failed { "the request failed" } else { "captured" });
@@ -246,15 +250,14 @@ pub async fn run(app: AppHandle) {
             break reason;
         }
     };
-    report["result"] = json!(reason);
-    report["fullPageMemoryMB"] = json!(chatgpt::memory_mb(&app).await);
+    capture["result"] = json!(reason);
+    capture["fullPageMemoryMB"] = json!(chatgpt::memory_mb(&app).await);
     tokio::time::sleep(Duration::from_millis(1500)).await; // The page puts the text in the box after its request.
-    report["composerCleared"] = chatgpt::evaluate(&app, CLEAR_COMPOSER, Duration::from_secs(10)).await.unwrap_or_default();
-    let _ = std::fs::create_dir_all(&out_dir);
-    let file = out_dir.join(format!("capture-{}.json", started_at.replace([':', '.'], "-")));
-    match serde_json::to_string_pretty(&report).map(|text| std::fs::write(&file, format!("{text}\n"))) {
-        Ok(Ok(())) => println!("Capture: {reason}. File: {}", file.display()),
-        _ => eprintln!("Capture: {reason}. Cannot write {}", file.display()),
+    capture["composerCleared"] = chatgpt::evaluate(&app, CLEAR_COMPOSER, Duration::from_secs(10)).await.unwrap_or_default();
+    let file = out_dir.join(format!("capture-{}.json", report::stamp(&started_at)));
+    match report::write(&file, &capture) {
+        Ok(()) => println!("Capture: {reason}. File: {}", file.display()),
+        Err(err) => eprintln!("Capture: {reason}. Cannot write {}: {err}", file.display()),
     }
     tokio::time::sleep(Duration::from_millis(1500)).await;
     app.exit(0);

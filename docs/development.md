@@ -15,7 +15,24 @@ Native recording: WebKit gives the microphone only to a page that has the focus,
 
 Hold mode: the global shortcut plugin of Tauri reports the key-down and the key-up of the shortcut (macOS, Windows, and X11). The key-down starts the dictation, and the key-up stops it. A press shorter than 0.3 s cancels the dictation, so that no empty audio goes to ChatGPT. The hold mode needs no key hook and no Accessibility permission.
 
-Code: [src-tauri/src/main.rs](../src-tauri/src/main.rs) (tray, shortcut, flow, settings), [chatgpt.rs](../src-tauri/src/chatgpt.rs) (hidden window, sign-in, upload), [audio.rs](../src-tauri/src/audio.rs) (recorder), [paste.rs](../src-tauri/src/paste.rs) (paste on each platform), [platform.rs](../src-tauri/src/platform.rs) (pop-up window, macOS permissions, login item), [e2e.rs](../src-tauri/src/e2e.rs) and [capture.rs](../src-tauri/src/capture.rs) (test modes), [src/overlay/](../src/overlay/) (pop-up), [src/settings/](../src/settings/) (settings window), [docs/](.) (website, and the shapes of the mark).
+Code:
+
+| Path | What it does |
+| --- | --- |
+| [src-tauri/src/main.rs](../src-tauri/src/main.rs) | The start: the plugins, the commands, the windows, and the start-up sequence. |
+| [app.rs](../src-tauri/src/app.rs) | The shared state, and the status that the tray, the pop-up, and the settings window show. |
+| [dictation.rs](../src-tauri/src/dictation.rs) | A dictation: the checks, the recording, the upload, the clipboard, and the paste. |
+| [hotkey.rs](../src-tauri/src/hotkey.rs) | The global shortcut, and Esc during a recording. |
+| [account.rs](../src-tauri/src/account.rs) | The check of the ChatGPT session, the sign-in, and the sign-out. |
+| [ui/](../src-tauri/src/ui/) | The tray icon and its menu, the pop-up, and the settings window with its commands. |
+| [chatgpt/](../src-tauri/src/chatgpt/) | The hidden chatgpt.com window, the bridge that runs code in its page, and the upload. |
+| [audio/](../src-tauri/src/audio/) | The recorder, the resampler, and the WAV files. |
+| [paste.rs](../src-tauri/src/paste.rs) | The paste on each system. |
+| [platform/](../src-tauri/src/platform/) | The parts that differ for each system: the pop-up window, the macOS permissions, and the login item. |
+| [settings.rs](../src-tauri/src/settings.rs), [options.rs](../src-tauri/src/options.rs) | The settings file, and the command line options. |
+| [e2e/](../src-tauri/src/e2e/), [capture.rs](../src-tauri/src/capture.rs), [report.rs](../src-tauri/src/report.rs) | The test modes, and their report files. |
+| [src/overlay/](../src/overlay/), [src/settings/](../src/settings/) | The pages of the pop-up and of the settings window. |
+| [docs/](.) | The website, and the shapes of the mark. |
 
 Data: Moulin keeps `settings.json` in the config folder of the app: `~/Library/Application Support/app.moulin` (macOS), `%APPDATA%\app.moulin` (Windows), or `~/.config/app.moulin` (Linux). The ChatGPT session is in `~/Library/WebKit/app.moulin/WebsiteDataStore` (macOS), `%LOCALAPPDATA%\app.moulin\chatgpt` (Windows), or `~/.local/share/app.moulin/chatgpt` (Linux). Only your user account can read the files.
 
