@@ -7,9 +7,9 @@
   "scripts": {
     "start": "tauri dev",
     "capture": "tauri dev -- -- --capture",
-    "sample": "sh scripts/make-sample.sh",
+    "sample": "sh tests/make-sample.sh",
     "icons": "node scripts/make-icons.mjs",
-    "e2e": "node scripts/run-e2e.js",
+    "e2e": "node tests/e2e.js",
     "e2e:dev": "tauri dev -- -- --e2e",
     "dist": "tauri build",
     "dist:mac": "tauri build --bundles app,dmg",

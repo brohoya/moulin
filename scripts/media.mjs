@@ -1,7 +1,7 @@
-// The images of the website and the README, made from the shapes in docs/mill.js and docs/wordmark.js.
-// scripts/make-icons.mjs writes them to docs/media. The animations are CSS in the SVG files, so they also play in a README.
-import { HILL, PAINT, SAIL_FINE, glyphInner, iconSvg, millSvg, windSvg } from '../docs/mill.js';
-import { WORDMARK } from '../docs/wordmark.js';
+// The images of the website and the README, made from the shapes in website/mill.js and website/wordmark.js.
+// scripts/make-icons.mjs writes them to website/media and docs/media. The animations are CSS in the SVG files, so they also play in a README.
+import { HILL, PAINT, SAIL_FINE, glyphInner, iconSvg, millSvg, windSvg } from '../website/mill.js';
+import { WORDMARK } from '../website/wordmark.js';
 import { DEFINITION } from './definition.mjs';
 
 const r2 = (n) => Math.round(n * 100) / 100;

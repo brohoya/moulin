@@ -46,7 +46,7 @@ impl Options {
             toggle: has("--toggle"),
             hold: has("--hold"),
             challenge: has("--challenge"),
-            sample: value("sample").unwrap_or_else(|| root.join("fixtures").join("fr-sample.wav")),
+            sample: value("sample").unwrap_or_else(|| root.join("tests").join("fr-sample.wav")),
             out_dir: value("out").unwrap_or_else(|| root.join("artifacts")),
         }
     }

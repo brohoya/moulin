@@ -16,7 +16,7 @@ export const COLORS = {
   white: '#FFFFFF',
 };
 
-// The color of each part of the picture. docs/site.css has the same colors.
+// The color of each part of the picture. website/site.css has the same colors.
 export const PAINT = {
   sky: COLORS.sky, far: COLORS.far, land: COLORS.green, tower: COLORS.cream, roof: COLORS.roof, sails: COLORS.green,
   holes: COLORS.green, ring: COLORS.cream, hub: COLORS.signal, ink: COLORS.green,

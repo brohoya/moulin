@@ -1,13 +1,13 @@
-// Makes the Moulin images from the shapes in docs/mill.js:
+// Makes the Moulin images from the shapes in website/mill.js:
 // - the app icon: src-tauri/icons/icon.svg, the bundle icons in src-tauri/icons, and src/settings/icon.png
 // - the tray images in src-tauri/icons/tray
-// - the images of the website and the README in docs/media
+// - the images of the website in website/media, and the images of the README in docs/media
 // Run it with "npm run icons" after a change of the shapes or the colors.
 import { Resvg } from '@resvg/resvg-js';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { COLORS, glyphSvg, iconSvg } from '../docs/mill.js';
+import { COLORS, glyphSvg, iconSvg } from '../website/mill.js';
 import { demoSvg, faviconSvg, heroSvg, socialSvg } from './media.mjs';
 
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -47,12 +47,11 @@ tray('tile-recording', glyphSvg({ color: COLORS.white, badge: COLORS.signal }), 
 tray('tile-error', glyphSvg({ color: '#3A2600', badge: COLORS.amber }), 16);
 
 // Website and README.
-write('docs/media/icon.png', png(icon, 512));
-write('docs/media/favicon.svg', faviconSvg());
-write('docs/media/apple-touch-icon.png', png(faviconSvg({ square: true }), 180));
+write('website/media/favicon.svg', faviconSvg());
+write('website/media/apple-touch-icon.png', png(faviconSvg({ square: true }), 180));
 write('docs/media/banner.svg', heroSvg());
 write('docs/media/demo.svg', demoSvg());
-write('docs/media/social.png', png(socialSvg(), 1280));
+write('website/media/social.png', png(socialSvg(), 1280));
 // The bundle icons (icns, ico, and png), from icon.svg. "tauri icon" also makes icons for Android, iOS, and the
 // Microsoft Store, which Moulin does not use, so the script removes them.
 execFileSync('npx', ['tauri', 'icon', path.join(ICONS, 'icon.svg')], { cwd: ROOT, stdio: 'inherit' });
@@ -60,4 +59,4 @@ const KEEP = ['icon.svg', 'tray', '32x32.png', '128x128.png', '128x128@2x.png', 
 for (const name of fs.readdirSync(ICONS)) {
   if (!KEEP.includes(name)) fs.rmSync(path.join(ICONS, name), { recursive: true });
 }
-console.log('Images written to src-tauri/icons/, src/settings/, and docs/media/.');
+console.log('Images written to src-tauri/icons/, src/settings/, website/media/, and docs/media/.');
