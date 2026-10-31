@@ -53,6 +53,8 @@ The Rust code in [src-tauri/src/](../src-tauri/src/):
 | [settings.rs](../src-tauri/src/settings.rs), [options.rs](../src-tauri/src/options.rs) | The settings file, and the command line options. |
 | [e2e/](../src-tauri/src/e2e/), [capture.rs](../src-tauri/src/capture.rs), [report.rs](../src-tauri/src/report.rs) | The test modes, and their report files. |
 
+The code that runs in a page is in a `.js` file next to the Rust file that uses it, for example [upload.js](../src-tauri/src/chatgpt/upload.js) next to upload.rs. Each file holds an object of functions. Rust reads the file with `include_str!` and calls a function by its name, with the arguments as JSON (`chatgpt::call`). Do not write JavaScript in Rust strings.
+
 ## Build and test
 
 You need Node.js, Rust (install it with [rustup](https://rustup.rs)), and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) of your system. On Linux, also install `libasound2-dev` for the microphone.

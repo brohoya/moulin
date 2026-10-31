@@ -93,7 +93,7 @@ async fn picture(app: AppHandle, seen: Arc<Mutex<Seen>>, view: View, file: PathB
     tokio::time::sleep(Duration::from_millis(delay)).await;
     let value = match overlay::window(&app) {
         Some(window) => {
-            let state = page_value(&window, PAGE_STATE).await;
+            let state = page_value(&window, "pill").await;
             lock(&seen).pages.insert(view.as_str().into(), state);
             save_picture(&window, &file).await
         }
@@ -102,16 +102,14 @@ async fn picture(app: AppHandle, seen: Arc<Mutex<Seen>>, view: View, file: PathB
     lock(&seen).pictures.insert(view.as_str().into(), value);
 }
 
-/// What the pop-up page shows: the state of the pill, its text, the time of the recording, and the hover.
-/// The time grows only with the level events of the recorder, so it also proves that they arrive.
-const PAGE_STATE: &str = "({ state: document.getElementById('pill').dataset.state, text: document.getElementById('text').textContent, \
-                          time: document.getElementById('time').textContent, hover: document.getElementById('pill').hasAttribute('data-hover') })";
+/// What the E2E test reads in the pages (see pages.js).
+const PAGES: &str = include_str!("pages.js");
 
-/// Runs an expression in the page of a window, and returns its value (null if the page gives no answer).
-pub async fn page_value(window: &WebviewWindow, expression: &str) -> Value {
+/// Runs a function of pages.js in the page of a window, and returns its value (null if the page gives no answer).
+pub async fn page_value(window: &WebviewWindow, function: &str) -> Value {
     let (tx, rx) = oneshot::channel();
     let tx = Mutex::new(Some(tx));
-    let sent = window.eval_with_callback(format!("JSON.stringify({expression})"), move |json| {
+    let sent = window.eval_with_callback(format!("JSON.stringify(({PAGES}).{function}())"), move |json| {
         if let Some(tx) = tx.lock().unwrap().take() {
             let _ = tx.send(json);
         }

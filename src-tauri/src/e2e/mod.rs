@@ -193,7 +193,7 @@ impl Test {
         for (name, pointer, expected) in steps {
             let _ = self.app.emit_to(overlay::LABEL, "overlay:pointer", pointer.map(|(x, y): (f64, f64)| json!({ "x": x, "y": y })));
             tokio::time::sleep(Duration::from_millis(150)).await;
-            let value = page_value(&window, "document.getElementById('pill').hasAttribute('data-hover')").await;
+            let value = page_value(&window, "hover").await;
             follows &= value == expected;
             hover.insert(name.into(), value);
             if expected {
@@ -226,12 +226,7 @@ impl Test {
         }
         // The list of microphones loads after the window shows.
         tokio::time::sleep(Duration::from_millis(500)).await;
-        let notice = "document.getElementById('notice').hidden ? null : document.getElementById('notice').textContent";
-        let sizes = page_value(
-            &window,
-            &format!("({{ inner: innerHeight, content: document.body.getBoundingClientRect().height, notice: {notice} }})"),
-        )
-        .await;
+        let sizes = page_value(&window, "settings").await;
         let picture = save_picture(&window, &self.picture_file("settings")).await;
         let _ = window.destroy();
         let fits = match (sizes["inner"].as_f64(), sizes["content"].as_f64()) {
@@ -271,9 +266,7 @@ impl Test {
             // The pill changes its width in 0.28 s.
             tokio::time::sleep(Duration::from_millis(350)).await;
             let Some(window) = overlay::window(&app) else { return Value::Null };
-            let text = "(() => { const t = document.getElementById('text'); \
-                        return { text: t.textContent, full: t.scrollWidth <= t.clientWidth }; })()";
-            let mut pill = page_value(&window, text).await;
+            let mut pill = page_value(&window, "text").await;
             pill["picture"] = save_picture(&window, &file).await;
             pill
         })

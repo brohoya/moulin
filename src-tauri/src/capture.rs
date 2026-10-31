@@ -7,36 +7,13 @@ use serde_json::{Map, Value, json};
 use std::time::Duration;
 use tauri::AppHandle;
 
+/// The code of the capture mode in the page (see capture.js).
+const CAPTURE: &str = include_str!("capture.js");
+
 /// Runs at the start of each page of the window, in capture mode only.
-pub const SCRIPT: &str = r#"(() => {
-  if (location.origin !== 'https://chatgpt.com') return;
-  const records = (window.__moulinCapture = []);
-  const original = window.fetch;
-  window.fetch = async function (input, init) {
-    const url = String(typeof input === 'string' || input instanceof URL ? input : input.url);
-    if (!/\/backend-api\/transcribe/.test(url)) return original.apply(this, arguments);
-    const record = { method: (init && init.method) || (input && input.method) || 'GET', url: url.split('?')[0], headers: {}, form: [] };
-    new Headers((init && init.headers) || (input instanceof Request ? input.headers : undefined)).forEach((value, name) => { record.headers[name] = value; });
-    const body = init && init.body;
-    if (body instanceof FormData) {
-      for (const [name, value] of body.entries()) {
-        record.form.push(value instanceof Blob ? { name, filename: value.name ?? null, contentType: value.type || null } : { name, value: String(value) });
-      }
-    }
-    try {
-      const response = await original.apply(this, arguments);
-      const headers = {};
-      response.headers.forEach((value, name) => { headers[name] = value; });
-      record.response = { status: response.status, headers, body: await response.clone().text() };
-      records.push(record);
-      return response;
-    } catch (e) {
-      record.failed = String(e);
-      records.push(record);
-      throw e;
-    }
-  };
-})();"#;
+pub fn script() -> String {
+    chatgpt::call(CAPTURE, "record", &[])
+}
 
 /// Headers with a value that is not a secret. The capture file redacts all other values.
 const SAFE: [&str; 21] = [
@@ -62,42 +39,6 @@ const SAFE: [&str; 21] = [
     "cf-mitigated",
     "server",
 ];
-
-/// The message box is the only contenteditable element of the page (October 2026).
-const CLEAR_COMPOSER: &str = "(() => {
-  const box = document.querySelector('[contenteditable=\"true\"]');
-  if (!box || !box.textContent.trim()) return false;
-  box.focus();
-  document.execCommand('selectAll');
-  document.execCommand('delete');
-  return !box.textContent.trim();
-})()";
-
-/// Runs in the page. Finds where the page can read each header value. Returns the places, not the values.
-const PAGE_SEARCH: &str = "async (targets) => {
-  const found = {};
-  const visit = (value, where) => {
-    if (typeof value === 'string') {
-      for (const [name, target] of Object.entries(targets)) if (target && value === target) (found[name] ||= []).push(where);
-      if (/^[[{]/.test(value)) { try { visit(JSON.parse(value), where); } catch {} }
-    } else if (value && typeof value === 'object') {
-      for (const [key, v] of Object.entries(value)) visit(v, `${where}.${key}`);
-    }
-  };
-  let session = {};
-  try { session = await (await fetch('/api/auth/session', { cache: 'no-store' })).json(); } catch {}
-  visit(session, 'GET /api/auth/session');
-  for (const store of ['localStorage', 'sessionStorage']) {
-    for (let i = 0; i < window[store].length; i++) visit(window[store].getItem(window[store].key(i)), `${store}[${window[store].key(i)}]`);
-  }
-  for (const part of document.cookie.split('; ')) {
-    const i = part.indexOf('=');
-    try { visit(decodeURIComponent(part.slice(i + 1)), `document.cookie ${part.slice(0, i)}`); } catch {}
-  }
-  const shape = (v, depth = 2) => (Array.isArray(v) ? (depth ? [v.length ? shape(v[0], depth - 1) : 'empty'] : 'array')
-    : v && typeof v === 'object' ? (depth ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shape(x, depth - 1)])) : 'object') : typeof v);
-  return { found, sessionShape: shape(session) };
-}";
 
 fn redact(headers: &Value) -> Value {
     let map = headers.as_object().cloned().unwrap_or_default();
@@ -187,7 +128,7 @@ async fn sources(app: &AppHandle, headers: &Value) -> Value {
             }
         }
     }
-    let code = format!("({PAGE_SEARCH})({})", Value::Object(targets));
+    let code = chatgpt::call(CAPTURE, "search", &[Value::Object(targets)]);
     let page = chatgpt::evaluate(app, &code, Duration::from_secs(30)).await.unwrap_or_default();
     for (key, places) in page["found"].as_object().cloned().unwrap_or_default() {
         let list = found.entry(key).or_insert_with(|| json!([]));
@@ -229,14 +170,14 @@ pub async fn run(app: AppHandle) {
     chatgpt::load(&app, chatgpt::HOME).await;
     println!("Capture: sign in, then do one dictation with the microphone button of the page. Do not send a message.");
     let deadline = tokio::time::Instant::now() + Duration::from_secs(15 * 60);
+    let take = chatgpt::call(CAPTURE, "take", &[]);
     let reason = loop {
         tokio::select! {
             _ = closes.changed() => break "the user closed the window",
             _ = tokio::time::sleep_until(deadline) => break "timeout",
             _ = tokio::time::sleep(Duration::from_millis(500)) => {}
         }
-        let code = "window.__moulinCapture ? window.__moulinCapture.splice(0) : []";
-        let raws = chatgpt::evaluate(&app, code, Duration::from_secs(10)).await.unwrap_or_default();
+        let raws = chatgpt::evaluate(&app, &take, Duration::from_secs(10)).await.unwrap_or_default();
         let mut done = None;
         for raw in raws.as_array().cloned().unwrap_or_default() {
             let failed = raw["failed"].is_string();
@@ -253,7 +194,7 @@ pub async fn run(app: AppHandle) {
     capture["result"] = json!(reason);
     capture["fullPageMemoryMB"] = json!(chatgpt::memory_mb(&app).await);
     tokio::time::sleep(Duration::from_millis(1500)).await; // The page puts the text in the box after its request.
-    capture["composerCleared"] = chatgpt::evaluate(&app, CLEAR_COMPOSER, Duration::from_secs(10)).await.unwrap_or_default();
+    capture["composerCleared"] = chatgpt::evaluate(&app, &chatgpt::call(CAPTURE, "clearComposer", &[]), Duration::from_secs(10)).await.unwrap_or_default();
     let file = out_dir.join(format!("capture-{}.json", report::stamp(&started_at)));
     match report::write(&file, &capture) {
         Ok(()) => println!("Capture: {reason}. File: {}", file.display()),

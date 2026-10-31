@@ -1,6 +1,6 @@
 //! The upload of a recording: the page sends it to /backend-api/transcribe, and Moulin reads the result.
 use super::{
-    Kind,
+    Kind, call,
     check::{self, Step},
     evaluate, kind, on_chatgpt, start,
 };
@@ -22,43 +22,8 @@ const MESSAGES: [(&str, &str); 2] = [
     ("usage_not_included", "Your ChatGPT plan does not include dictation."),
 ];
 
-/// The code for the page. It returns no secret: only the status, the text, and an error code.
-/// The form fields and the headers are the same as the request of the dictation button (capture of October 2026).
-/// The file is WAV instead of the WebM of the page: Moulin records the audio itself.
-const UPLOAD: &str = r#"async ({ audio, sessionId, durationMs, codes, timeoutMs }) => {
-  try {
-    const s = await fetch('/api/auth/session', { cache: 'no-store' });
-    const session = s.ok ? await s.json() : {};
-    if (!session.accessToken) return { stage: 'session', status: s.ok ? 401 : s.status, signedOut: s.ok, cfMitigated: s.headers.get('cf-mitigated') };
-    const bytes = Uint8Array.from(atob(audio), (c) => c.charCodeAt(0));
-    const form = new FormData();
-    form.append('file', new Blob([bytes], { type: 'audio/wav' }), 'codex.wav');
-    form.append('dictation_session_id', sessionId);
-    form.append('attempt_id', crypto.randomUUID());
-    form.append('duration_ms', durationMs);
-    const headers = {
-      authorization: 'Bearer ' + session.accessToken,
-      'oai-language': navigator.language,
-      originator: 'Codex Browser',
-      'x-openai-web-frontend': 'codex_webview',
-      'x-openai-codex-window-type': 'browser',
-    };
-    if (session.account?.id) headers['chatgpt-account-id'] = session.account.id;
-    const did = document.cookie.match(/(?:^|; )oai-did=([^;]*)/);
-    if (did) headers['oai-device-id'] = headers['oai-did'] = decodeURIComponent(did[1]);
-    const r = await fetch('/backend-api/transcribe', { method: 'POST', headers, body: form, referrer: '/', signal: AbortSignal.timeout(timeoutMs) });
-    const body = await r.text();
-    let json = null;
-    try { json = JSON.parse(body); } catch {}
-    const out = { stage: 'transcribe', status: r.status, cfMitigated: r.headers.get('cf-mitigated') };
-    if (r.ok && typeof json?.text === 'string') out.text = json.text;
-    else out.code = codes.find((c) => body.includes(c))
-      ?? json?.detail?.code ?? (typeof json?.detail === 'string' ? json.detail.slice(0, 200) : null);
-    return out;
-  } catch (e) {
-    return { stage: 'network', status: 0, code: String(e?.name || e) };
-  }
-}"#;
+/// The upload function of the page (see upload.js).
+const UPLOAD: &str = include_str!("upload.js");
 
 /// The result of an upload.
 #[derive(Clone, Debug, Default, Serialize)]
@@ -94,7 +59,7 @@ fn upload_code(recording: &Recording, session_id: &str) -> String {
         "codes": MESSAGES.map(|(code, _)| code),
         "timeoutMs": TIMEOUT_MS,
     });
-    format!("({UPLOAD})({args})")
+    call(UPLOAD, "upload", &[args])
 }
 
 /// Reads the answer of the page. The page data is not trusted, so a missing or wrong field gets its default.

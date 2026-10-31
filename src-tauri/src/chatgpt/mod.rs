@@ -4,7 +4,7 @@ mod bridge;
 pub mod check;
 mod upload;
 
-pub use bridge::evaluate;
+pub use bridge::{call, evaluate};
 pub use upload::{Outcome, fake_refusal, transcribe};
 
 use serde::Serialize;
@@ -26,6 +26,8 @@ pub const HOME: &str = "https://chatgpt.com/";
 /// A small chatgpt.com document. The upload needs only the origin and the cookies.
 const LIGHT: &str = "https://chatgpt.com/robots.txt";
 const LABEL: &str = "chatgpt";
+/// The checks of the page: its HTTP status, and the session (see page.js).
+const PAGE: &str = include_str!("page.js");
 /// The title of the window for the sign-in. The Cloudflare check gives it another title.
 const SIGN_IN_TITLE: &str = "Sign in to ChatGPT - Moulin";
 /// WebKit reports no failed load, so a load that does not finish in this time counts as failed.
@@ -164,9 +166,7 @@ pub async fn load(app: &AppHandle, url: &str) -> u16 {
     if tokio::time::timeout(LOAD_TIMEOUT, loads.changed()).await.is_err() || !on_chatgpt(app) {
         return 0;
     }
-    // WebKit does not give the HTTP status of the document. robots.txt is plain text, and a Cloudflare check is HTML.
-    let head = "fetch(location.href, { method: 'HEAD', cache: 'no-store' }).then((r) => r.status, () => 0)";
-    let code = if url == LIGHT { format!("document.contentType === 'text/plain' ? 200 : {head}") } else { head.to_string() };
+    let code = call(PAGE, "status", &[serde_json::Value::Bool(url == LIGHT)]);
     evaluate(app, &code, Duration::from_secs(30)).await.ok().and_then(|v| v.as_u64()).unwrap_or(0) as u16
 }
 
@@ -175,9 +175,7 @@ async fn is_signed_in(app: &AppHandle) -> bool {
     if !on_chatgpt(app) {
         return false;
     }
-    let code =
-        "fetch('/api/auth/session', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : {})).then((s) => !!s.accessToken, () => false)";
-    evaluate(app, code, Duration::from_secs(30)).await.ok().and_then(|v| v.as_bool()).unwrap_or(false)
+    evaluate(app, &call(PAGE, "signedIn", &[]), Duration::from_secs(30)).await.ok().and_then(|v| v.as_bool()).unwrap_or(false)
 }
 
 /// Opens the light page. If Cloudflare blocks it, opens the full page.

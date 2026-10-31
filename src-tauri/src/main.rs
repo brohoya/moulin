@@ -68,7 +68,7 @@ fn setup(app: &mut App, opts: Options) -> Result<(), Box<dyn std::error::Error>>
     app.manage(Moulin::new(opts, settings_file, settings));
     let handle = app.handle().clone();
     if mode == Mode::Capture {
-        chatgpt::create(&handle, true, Some(capture::SCRIPT))?;
+        chatgpt::create(&handle, true, Some(&capture::script()))?;
     } else {
         // macOS: no Dock icon, only the icon in the menu bar.
         #[cfg(target_os = "macos")]

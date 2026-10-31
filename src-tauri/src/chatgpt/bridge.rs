@@ -13,24 +13,8 @@ use std::{
 use tauri::AppHandle;
 use tokio::sync::oneshot;
 
-/// Starts the code, and keeps its result as JSON text in `window[key][id]`.
-const START: &str = "(key, id, run) => {
-  const box = window[key] || (window[key] = {});
-  box[id] = null;
-  Promise.resolve().then(run).then(
-    (value) => { box[id] = JSON.stringify({ value: value ?? null }); },
-    (error) => { box[id] = JSON.stringify({ error: String((error && error.message) || error) }); },
-  );
-}";
-
-/// Gives the result and deletes it. The result is null while the code runs, and false if a navigation removed it.
-const POLL: &str = "(key, id) => {
-  const box = window[key];
-  if (!box || !(id in box)) return false;
-  const value = box[id];
-  if (value !== null) delete box[id];
-  return value;
-}";
+/// The functions `start` and `poll` that run the code in the page (see bridge.js).
+const BRIDGE: &str = include_str!("bridge.js");
 
 /// The name of the page property, as a JSON string.
 static KEY: LazyLock<String> = LazyLock::new(|| {
@@ -39,13 +23,20 @@ static KEY: LazyLock<String> = LazyLock::new(|| {
 });
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
+/// The code that calls a function of a script file of Moulin. The file holds an object of functions, and the arguments
+/// go to the page as JSON.
+pub fn call(script: &str, function: &str, args: &[Value]) -> String {
+    let args: Vec<String> = args.iter().map(Value::to_string).collect();
+    format!("({script}).{function}({})", args.join(", "))
+}
+
 /// Runs code in the page and returns its value. The code is an expression, and it can give a promise.
 pub async fn evaluate(app: &AppHandle, code: &str, limit: Duration) -> Result<Value, String> {
     let window = super::window(app)?;
     let key = KEY.as_str();
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    window.eval(format!("({START})({key}, {id}, () => ({code}))")).map_err(|err| err.to_string())?;
-    let poll = format!("({POLL})({key}, {id})");
+    window.eval(format!("({BRIDGE}).start({key}, {id}, () => ({code}))")).map_err(|err| err.to_string())?;
+    let poll = format!("({BRIDGE}).poll({key}, {id})");
     let deadline = Instant::now() + limit;
     loop {
         tokio::time::sleep(Duration::from_millis(100)).await;
