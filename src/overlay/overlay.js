@@ -60,13 +60,17 @@ listen('overlay:level', ({ payload: { level, ms } }) => {
 
 function startMeter() {
   if (meter) return;
-  meter = { levels: bars.map(() => 0), angle: 0, previous: 0, frame: 0 };
+  meter = { levels: bars.map(() => 0), angle: 0, speed: 0, previous: 0, frame: 0 };
   time.textContent = '0:00';
   const frame = (now) => {
     if (!meter) return;
-    // The voice is the wind: a louder voice turns the sails faster, counterclockwise.
+    // The voice is the wind: a louder voice turns the sails faster, counterclockwise. As on the website (site.js), the
+    // speed moves a part of the way to its target at each frame: the sails speed up fast and slow down slowly.
     if (meter.previous && !reduced.matches) {
-      meter.angle -= (20 + meter.levels[meter.levels.length - 1] * 240) * ((now - meter.previous) / 1000);
+      const dt = Math.min(0.05, (now - meter.previous) / 1000);
+      const target = 20 + meter.levels[meter.levels.length - 1] * 280;
+      meter.speed += (target - meter.speed) * Math.min(1, dt * (target > meter.speed ? 8 : 0.9));
+      meter.angle -= meter.speed * dt;
       sails.forEach((group) => { group.style.transform = `rotate(${meter.angle.toFixed(1)}deg)`; });
     }
     meter.previous = now;
