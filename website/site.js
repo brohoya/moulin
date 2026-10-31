@@ -163,7 +163,7 @@ function frame(now) {
     }
     const x = (t - WORD.at) / WORD.duration;
     if (x >= 0 && x < 1) {
-      target = -(20 + 240 * loudness(x)); // The rule of the pop-up in the app: 20 + 240 x the loudness, in degrees per second.
+      target = -(20 + 280 * loudness(x)); // The rule of the pop-up in the app: 20 + 280 x the loudness, in degrees per second.
       rise = 8;
     }
     if (x >= 1) motion.intro = false;

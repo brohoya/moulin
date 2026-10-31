@@ -127,7 +127,7 @@ export function demoSvg() {
   const end = PILL.rec / 2 - PILL.height / 2; // from the center of the pill to the center of a round end
   const slide = (w) => r2((PILL.rec - w) / 2);
   const stretch = (w) => Math.round(((w - PILL.height) / (PILL.rec - PILL.height)) * 10000) / 10000;
-  const pill = `<g fill="#17221D"><circle class="end-l" cx="${cx - end}" cy="${pillY}" r="${PILL.height / 2}"/>`
+  const pill = `<g fill="#1B1A1F"><circle class="end-l" cx="${cx - end}" cy="${pillY}" r="${PILL.height / 2}"/>`
     + `<circle class="end-r" cx="${cx + end}" cy="${pillY}" r="${PILL.height / 2}"/>`
     + `<rect class="mid" x="${cx - end}" y="${pillY - PILL.height / 2}" width="${2 * end}" height="${PILL.height}"/></g>`;
   const recording = `<g class="c-rec">${glyphAt({ x: cx - 112, y: pillY - 15, size: 30, color: '#FF453A', id: 'pill-rec', cls: 'spin-slow' })}${bars}${times}</g>`;
@@ -158,7 +158,7 @@ export function demoSvg() {
   /* The hub of a glyph is at (16, 12.2) in its grid. With transform-box: fill-box, Firefox turns the gap in the mask around another point. */
   .spin-slow .sails, .spin-fast .sails, .menu-busy .sails { transform-box: view-box; transform-origin: 16px 12.2px; animation: turn linear infinite; }
   .spin-slow .sails { animation-duration: 2.6s; }
-  .spin-fast .sails, .menu-busy .sails { animation-duration: 1.1s; }
+  .spin-fast .sails, .menu-busy .sails { animation-duration: 1s; }
   .c-rec, .c-busy, .c-done, .pasted, .flash, .caret0, .tick { animation-duration: ${T}s; animation-iteration-count: infinite; animation-timing-function: linear; }
   .c-rec { animation-name: c-rec; } .c-busy { animation-name: c-busy; } .c-done { animation-name: c-done; }
   .pills { animation: pills ${T}s infinite; transform-box: view-box; transform-origin: ${cx}px ${pillY + PILL.height / 2}px; }
