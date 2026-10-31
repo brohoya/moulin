@@ -51,7 +51,9 @@ listen('overlay:level', ({ payload: { level, ms } }) => {
   if (!meter) return;
   meter.levels.shift();
   meter.levels.push(Math.min(1, level * 7));
-  bars.forEach((bar, i) => { bar.style.transform = `scaleY(${0.12 + meter.levels[i] * 0.88})`; });
+  // A hidden page (a locked screen, or the pop-up off) draws nothing. There, each move of the bars starts CSS
+  // transitions that WebKit keeps: about 1 MB per second of recording. The next event after the page shows moves them.
+  if (!document.hidden) bars.forEach((bar, i) => { bar.style.transform = `scaleY(${0.12 + meter.levels[i] * 0.88})`; });
   const s = Math.floor(ms / 1000);
   time.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 });
