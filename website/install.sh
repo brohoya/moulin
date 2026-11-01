@@ -1,6 +1,6 @@
 #!/bin/sh
 # Installs or updates Moulin from the latest GitHub release:
-#   curl -fsSL https://brohoya.github.io/moulin/install.sh | sh
+#   curl -fsSL https://moulin.brohoya.com/install.sh | sh
 # macOS (Apple silicon): Moulin.app goes to ~/Applications.
 # Linux (x86_64): the AppImage goes to ~/.local/bin/moulin.
 # MOULIN_DIR changes the folder. MOULIN_NO_START=1 does not start Moulin after the install.

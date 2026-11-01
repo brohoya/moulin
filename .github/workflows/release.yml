@@ -86,7 +86,7 @@ jobs:
           cat > notes.md <<'EOF'
           ## Install
 
-          - macOS (Apple silicon): run `curl -fsSL https://brohoya.github.io/moulin/install.sh | sh`. Or open the dmg and drag Moulin to Applications. Apple did not notarize Moulin, so after a download in the browser, open System Settings > Privacy & Security and click Open Anyway.
+          - macOS (Apple silicon): run `curl -fsSL https://moulin.brohoya.com/install.sh | sh`. Or open the dmg and drag Moulin to Applications. Apple did not notarize Moulin, so after a download in the browser, open System Settings > Privacy & Security and click Open Anyway.
           - Windows: run the exe. SmartScreen warns at the first start: click More info, then Run anyway.
           - Linux (x86_64): run the same command as on macOS. Or make the AppImage executable and start it.
 

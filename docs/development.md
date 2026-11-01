@@ -8,7 +8,7 @@ The open work is in the [GitHub issues](https://github.com/brohoya/moulin/issues
 | --- | --- |
 | [src-tauri/](../src-tauri/) | The app: the Rust code, the Tauri configuration, and the icons. |
 | [src/](../src/) | The web pages of the app: the pop-up and the settings window. |
-| [website/](../website/) | The website at https://brohoya.github.io/moulin/ with its fonts and images, the install script, and the Karabiner rule. [mill.js](../website/mill.js) and [wordmark.js](../website/wordmark.js) have the shapes of the mark: the website draws with them, and `npm run icons` makes all the images from them. |
+| [website/](../website/) | The website at https://moulin.brohoya.com with its fonts and images, the install script, and the Karabiner rule. [mill.js](../website/mill.js) and [wordmark.js](../website/wordmark.js) have the shapes of the mark: the website draws with them, and `npm run icons` makes all the images from them. |
 | [docs/](.) | This guide, and the images of the README. |
 | [tests/](../tests/) | The E2E test: the runner, the audio sample and its text, and the script that makes the sample. |
 | [scripts/](../scripts/) | The scripts that make the images (`npm run icons`), and the macOS build scripts (`npm run reinstall`, `npm run signing:setup`). |

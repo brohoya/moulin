@@ -7,7 +7,7 @@ ChatGPT has the best multilingual speech-to-text models that I have tested, so p
 On macOS and Linux, run this command in a terminal. It installs Moulin and starts it. Run it again to update.
 
 ```sh
-curl -fsSL https://brohoya.github.io/moulin/install.sh | sh
+curl -fsSL https://moulin.brohoya.com/install.sh | sh
 ```
 
 Or download Moulin for your computer: <a href="https://github.com/brohoya/moulin/releases/latest">Download</a>
@@ -28,7 +28,7 @@ Or download Moulin for your computer: <a href="https://github.com/brohoya/moulin
 
   ```sh
   brew install --cask karabiner-elements
-  open "karabiner://karabiner/assets/complex_modifications/import?url=https%3A%2F%2Fbrohoya.github.io%2Fmoulin%2Fkarabiner.json"
+  open "karabiner://karabiner/assets/complex_modifications/import?url=https%3A%2F%2Fmoulin.brohoya.com%2Fkarabiner.json"
   ```
 
   In Karabiner-Elements, click Import, then Enable. Congrats, now F5 is binded to F13, you lost the refresh button but you can use moulin :moyai:.

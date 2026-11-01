@@ -1,0 +1,30 @@
+# Publishes the folder website/ at https://moulin.brohoya.com with the Cloudflare Worker of wrangler.jsonc, after each push to main that changes it.
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths: ['website/**', 'wrangler.jsonc', '.github/workflows/website.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time. A deploy that runs always ends, and only the last waiting push deploys after it.
+concurrency:
+  group: website
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the Cloudflare token
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: '[ -n "$TOKEN" ] || { echo "::error::CLOUDFLARE_API_TOKEN is empty."; exit 1; }'
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: deploy
