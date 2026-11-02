@@ -52,13 +52,13 @@
 
   <h2>After a dictation</h2>
   <section>
-    <label class="row">
+    <div class="row">
       <div class="text">
-        <div class="label">Paste at the cursor</div>
-        <div class="hint">The text also stays in the clipboard.</div>
+        <div id="autoPaste-label" class="label">Paste at the cursor</div>
+        <div id="autoPaste-hint" class="hint">The text also stays in the clipboard.</div>
       </div>
-      <input id="autoPaste" class="switch" type="checkbox">
-    </label>
+      <input id="autoPaste" class="switch" type="checkbox" aria-labelledby="autoPaste-label" aria-describedby="autoPaste-hint">
+    </div>
     <div id="accessibility" class="row" hidden>
       <div class="text"><div class="hint">macOS needs the Accessibility permission for Moulin to paste.</div></div>
       <button id="open-accessibility" type="button">Open settings</button>
@@ -84,14 +84,14 @@
         <button type="button" data-step="10" aria-label="Lower more"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6h7M6 2.5v7"/></svg></button>
       </div>
     </div>
-    <label class="row">
-      <div class="label">Show the pop-up during a dictation</div>
-      <input id="showOverlay" class="switch" type="checkbox">
-    </label>
-    <label class="row">
-      <div class="label">Start Moulin at login</div>
-      <input id="openAtLogin" class="switch" type="checkbox">
-    </label>
+    <div class="row">
+      <div id="showOverlay-label" class="label">Show the pop-up during a dictation</div>
+      <input id="showOverlay" class="switch" type="checkbox" aria-labelledby="showOverlay-label">
+    </div>
+    <div class="row">
+      <div id="openAtLogin-label" class="label">Start Moulin at login</div>
+      <input id="openAtLogin" class="switch" type="checkbox" aria-labelledby="openAtLogin-label">
+    </div>
   </section>
 
   <p class="note"><strong>Caution:</strong> Moulin automates the ChatGPT web app. The OpenAI Terms of Use forbid this, so OpenAI can warn or suspend the account. A change of the web app can also stop Moulin.</p>

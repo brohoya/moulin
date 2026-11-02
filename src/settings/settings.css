@@ -153,8 +153,6 @@ section {
 
 .row ~ .row { border-top: 1px solid var(--line); }
 
-label.row { cursor: pointer; }
-
 .text { flex: 1; }
 
 .row > .label { flex: 1; }
