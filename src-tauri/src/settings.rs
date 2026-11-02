@@ -15,6 +15,11 @@ pub struct Settings {
     pub microphone_id: String,
     /// Show the pop-up during a dictation.
     pub show_overlay: bool,
+    /// What happens to the media that plays (music, videos) during the recording.
+    pub media: MediaMode,
+    /// The volume of the computer during the recording in "lower" mode, in percent of the volume before the recording.
+    /// The settings window shows how much the volume goes down: "by 70%" for 30.
+    pub media_volume: u8,
 }
 
 impl Default for Settings {
@@ -26,8 +31,24 @@ impl Default for Settings {
             open_at_login: true,
             microphone_id: String::new(),
             show_overlay: true,
+            media: MediaMode::Off,
+            media_volume: 50,
         }
     }
+}
+
+/// What happens to the media that plays during the recording. After the recording, Moulin sets it back.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MediaMode {
+    /// Pause the media that plays.
+    Pause,
+    /// Lower the volume of the computer.
+    Lower,
+    /// The media keeps playing. An unknown value in the file also gives this mode.
+    #[default]
+    #[serde(other)]
+    Off,
 }
 
 /// How the shortcut controls a dictation.
@@ -51,6 +72,8 @@ pub struct Patch {
     pub auto_paste: Option<bool>,
     pub open_at_login: Option<bool>,
     pub show_overlay: Option<bool>,
+    pub media: Option<MediaMode>,
+    pub media_volume: Option<u8>,
     pub microphone_id: Option<String>,
 }
 
@@ -68,6 +91,12 @@ impl Settings {
         }
         if let Some(on) = patch.show_overlay {
             self.show_overlay = on;
+        }
+        if let Some(media) = patch.media {
+            self.media = media;
+        }
+        if let Some(volume) = patch.media_volume {
+            self.media_volume = volume.min(100);
         }
         if let Some(id) = patch.microphone_id {
             self.microphone_id = id;

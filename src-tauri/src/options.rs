@@ -1,4 +1,5 @@
 //! The command line options.
+use crate::settings::MediaMode;
 use std::path::PathBuf;
 
 /// How Moulin runs.
@@ -20,6 +21,9 @@ pub struct Options {
     pub hold: bool,
     /// "--challenge": the E2E test gives the first upload a fake refusal of Cloudflare, so that Moulin runs the check.
     pub challenge: bool,
+    /// "--media" or "--media=pause": the E2E test pauses the media during the dictation, and checks it with test players
+    /// (see e2e/media.rs). "--media=lower": the test lowers the volume, and checks it (see e2e/volume.rs).
+    pub media: Option<MediaMode>,
     /// "--sample=<file>": the WAV file that the E2E test plays instead of the microphone.
     pub sample: PathBuf,
     /// "--out=<folder>": the folder of the reports of the test modes.
@@ -46,6 +50,11 @@ impl Options {
             toggle: has("--toggle"),
             hold: has("--hold"),
             challenge: has("--challenge"),
+            media: match args.iter().find_map(|a| a.strip_prefix("--media=")) {
+                Some("lower") => Some(MediaMode::Lower),
+                Some(_) => Some(MediaMode::Pause),
+                None => has("--media").then_some(MediaMode::Pause),
+            },
             sample: value("sample").unwrap_or_else(|| root.join("tests").join("fr-sample.wav")),
             out_dir: value("out").unwrap_or_else(|| root.join("artifacts")),
         }

@@ -9,6 +9,7 @@ mod chatgpt;
 mod dictation;
 mod e2e;
 mod hotkey;
+mod media;
 mod options;
 mod paste;
 mod platform;
@@ -19,6 +20,7 @@ mod ui;
 use app::{Moulin, State, moulin, on_main, set_ready, set_state};
 use options::{Mode, Options};
 use settings::HotkeyMode;
+use std::time::Duration;
 use tauri::{App, AppHandle, Manager, RunEvent, async_runtime::spawn};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
@@ -61,8 +63,14 @@ fn setup(app: &mut App, opts: Options) -> Result<(), Box<dyn std::error::Error>>
     let settings_file = app.path().app_config_dir()?.join("settings.json");
     let first_run = !settings_file.exists();
     let mut settings = settings::load(&settings_file);
+    // The test only: Moulin saves no settings in E2E mode.
     if opts.mode == Mode::E2e && opts.hold {
-        settings.mode = HotkeyMode::Hold; // The test only: Moulin saves no settings in E2E mode.
+        settings.mode = HotkeyMode::Hold;
+    }
+    if opts.mode == Mode::E2e
+        && let Some(media) = opts.media
+    {
+        settings.media = media;
     }
     let mode = opts.mode;
     app.manage(Moulin::new(opts, settings_file, settings));
@@ -135,6 +143,9 @@ fn on_event(app: &AppHandle, event: RunEvent) {
         RunEvent::Exit => {
             chatgpt::quit(app);
             let _ = app.global_shortcut().unregister_all();
+            // A quit during a dictation: the media that Moulin paused plays again, and the volume goes back. A pause in
+            // progress and a slow app can take some seconds.
+            media::restore_now(Duration::from_secs(5));
         }
         // A click on Moulin in the Finder or the Dock while it runs: open the settings.
         #[cfg(target_os = "macos")]

@@ -1,15 +1,18 @@
 //! E2E test: one full dictation in the real app, with the sample WAV as the microphone. It never pastes.
 //! It writes e2e-<time>.json and the recording e2e-<time>.wav to the output folder. Run it with "npm run e2e".
+mod media;
 mod observer;
 mod tools;
+mod volume;
 mod wer;
 
 use crate::{
-    app::{self, Event, Transcription, moulin},
+    app::{self, Event, State, Transcription, moulin, now_ms, on_main},
     audio::Recording,
     chatgpt::{self, Kind, check},
+    dictation,
     report::{self, file_name},
-    settings::{HotkeyMode, Settings},
+    settings::{HotkeyMode, MediaMode, Settings},
     ui::{
         self,
         overlay::{self, View},
@@ -47,6 +50,11 @@ struct Test {
     hold: bool,
     /// "--challenge": the first upload gets a fake refusal of Cloudflare.
     challenge: bool,
+    /// "--media": test players check the pause of the media (see media.rs). "--media=lower": a watcher checks the
+    /// volume (see volume.rs).
+    media: Option<MediaMode>,
+    /// The times of the start trigger and of the stop trigger, in ms since 1970.
+    triggers: (u64, u64),
     sample: PathBuf,
     /// The text of the sample: the file next to the sample, with the extension "txt".
     reference: String,
@@ -61,7 +69,7 @@ impl Test {
         let me = moulin(&app);
         let settings = me.settings();
         let hold = settings.mode == HotkeyMode::Hold;
-        let challenge = me.opts.challenge;
+        let (challenge, media) = (me.opts.challenge, me.opts.media);
         let (sample, out_dir) = (me.opts.sample.clone(), me.opts.out_dir.clone());
         let reference = fs::read_to_string(sample.with_extension("txt")).unwrap_or_default().trim().to_string();
         let (test, trigger) = if hold {
@@ -75,7 +83,16 @@ impl Test {
                 "a second Moulin process with --toggle (the path of a system shortcut)".to_string(),
             )
         };
-        let test = if challenge { format!("{test}, after a fake Cloudflare refusal of the first upload") } else { test.to_string() };
+        let mut test = if challenge { format!("{test}, after a fake Cloudflare refusal of the first upload") } else { test.to_string() };
+        match media {
+            Some(MediaMode::Pause) => {
+                test.push_str(", with a test player that plays and one that is paused (the pause of the media), then two quick taps");
+            }
+            Some(MediaMode::Lower) => {
+                test.push_str(", with the volume lowered during the recording, a quick tap, and a change by the user")
+            }
+            _ => {}
+        }
         let started_at = report::iso_now();
         let report = json!({
             "test": test,
@@ -88,7 +105,7 @@ impl Test {
             "page": page,
         });
         let stamp = report::stamp(&started_at);
-        Self { app, settings, hold, challenge, sample, reference, out_dir, stamp, report, failures: Vec::new() }
+        Self { app, settings, hold, challenge, media, triggers: (0, 0), sample, reference, out_dir, stamp, report, failures: Vec::new() }
     }
 
     /// The steps of the test. An error stops the test, and the report keeps the results of the steps before it.
@@ -100,6 +117,9 @@ impl Test {
         if !page.signed_in {
             self.fail("Not signed in to ChatGPT: open Moulin and sign in");
         }
+        // The players start first: the system needs a moment to show them to other apps.
+        let mut players = if self.media == Some(MediaMode::Pause) { Some(media::Players::start().await?) } else { None };
+        let watch = if self.media == Some(MediaMode::Lower) { Some(volume::Watch::start().await?) } else { None };
         tokio::time::sleep(Duration::from_secs(2)).await;
         let full_page = chatgpt::measure_full_page(&self.app, Duration::from_secs(8)).await;
         let light_page = chatgpt::memory_mb(&self.app).await;
@@ -114,14 +134,94 @@ impl Test {
         let clipboard = self.app.clipboard().read_text().unwrap_or_default();
         self.check_recording(&recording, sample_s);
         self.check_upload(&transcription, page, &clipboard);
+        if let Some(players) = &players {
+            let (report, failures) = players.check(self.triggers.0, self.triggers.1).await;
+            self.report["media"] = report;
+            self.failures.extend(failures);
+        }
+        if let Some(watch) = &watch {
+            let (report, failures) = watch.check(self.triggers.0, self.triggers.1, self.settings.media_volume).await;
+            self.report["volume"] = report;
+            self.failures.extend(failures);
+        }
         if let Some(check_pill) = check_pill {
             self.check_cloudflare(&transcription, check_pill.await.unwrap_or(Value::Null));
             // The settings window shows the notice of a last refusal, so that its check covers the notice too.
             app::set_notice(&self.app, check::UPLOAD_NOTICE);
         }
         self.check_overlay(observer).await;
+        // After the check of the pop-up, because the quick taps show the pop-up again.
+        if let Some(players) = &mut players {
+            self.check_taps(players).await;
+        }
+        if let Some(watch) = &watch {
+            self.check_volume_taps(watch).await;
+        }
         self.check_settings_window().await;
         Ok(())
+    }
+
+    /// "--media": a quick tap while "a" plays, then "a" quits and one more quick tap comes while nothing plays (see
+    /// media.rs).
+    async fn check_taps(&mut self, players: &mut media::Players) {
+        match self.tap(async || {}).await {
+            Ok((start_at, cancel_at)) => {
+                let (report, failures) = players.check_tap(start_at, cancel_at).await;
+                self.report["media"]["quickTap"] = report;
+                self.failures.extend(failures);
+            }
+            Err(err) => return self.fail(format!("Media, quick tap: {err}")),
+        }
+        players.quit("a");
+        // The system needs a moment to see that the player quit. On macOS, "b" then becomes the Now Playing app.
+        tokio::time::sleep(Duration::from_millis(1500)).await;
+        match self.tap(async || {}).await {
+            Ok((start_at, cancel_at)) => {
+                let (report, failures) = players.check_idle(start_at, cancel_at).await;
+                self.report["media"]["nothingPlays"] = report;
+                self.failures.extend(failures);
+            }
+            Err(err) => self.fail(format!("Media, nothing plays: {err}")),
+        }
+    }
+
+    /// "--media=lower": a quick tap, then a change of the volume by the user during a recording (see volume.rs).
+    async fn check_volume_taps(&mut self, watch: &volume::Watch) {
+        match self.tap(async || {}).await {
+            Ok((start_at, cancel_at)) => {
+                let (report, failures) = watch.check_tap(start_at, cancel_at).await;
+                self.report["volume"]["quickTap"] = report;
+                self.failures.extend(failures);
+            }
+            Err(err) => return self.fail(format!("Volume, quick tap: {err}")),
+        }
+        let (start_at, percent) = (now_ms(), self.settings.media_volume);
+        match self.tap(async || watch.change_during_recording(start_at, percent).await).await {
+            Ok((start_at, cancel_at)) => {
+                let (report, failures) = watch.check_user(start_at, cancel_at).await;
+                self.report["volume"]["userChange"] = report;
+                self.failures.extend(failures);
+            }
+            Err(err) => self.fail(format!("Volume, user change: {err}")),
+        }
+    }
+
+    /// A quick tap: a start and a cancel at once, with the tray menu ("Start dictation", "Cancel dictation"). The cancel
+    /// comes with the state "recording", before the microphone opens, and often before the media pauses. `during` runs
+    /// between the two, for example a change of the volume by the user. Returns the times of the start and of the
+    /// cancel.
+    async fn tap(&mut self, during: impl AsyncFnOnce()) -> Result<(u64, u64), String> {
+        let mut started = moulin(&self.app).events.subscribe();
+        let start_at = now_ms();
+        on_main(&self.app, dictation::toggle);
+        let recording = |e: &Event| matches!(e, Event::State(State::Recording)).then_some(());
+        let result = next(&mut started, "recording", 15_000, recording).await;
+        if result.is_ok() {
+            during().await;
+        }
+        let cancel_at = now_ms();
+        on_main(&self.app, dictation::cancel);
+        result.map(|()| (start_at, cancel_at))
     }
 
     /// One dictation: the trigger starts it, the sample plays, and the trigger stops it. Returns the audio and the
@@ -129,6 +229,7 @@ impl Test {
     async fn dictate(&mut self, sample_s: f64) -> Result<(Arc<Recording>, Transcription), String> {
         let events = moulin(&self.app).events.clone();
         let mut started = events.subscribe();
+        self.triggers.0 = now_ms();
         self.trigger(true).await?;
         next(&mut started, "started", 15_000, |e| matches!(e, Event::Started).then_some(())).await?;
         let end = tokio::time::Instant::now() + Duration::from_secs_f64(sample_s + TAIL_S);
@@ -138,6 +239,7 @@ impl Test {
         self.check_hover().await;
         tokio::time::sleep_until(end).await;
         let mut stopped = events.subscribe();
+        self.triggers.1 = now_ms();
         self.trigger(false).await?;
         let audio = |e: &Event| match e {
             Event::Audio(recording) => Some(recording.clone()),

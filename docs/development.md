@@ -27,6 +27,20 @@ Moulin is a [Tauri 2](https://v2.tauri.app) app. The Rust code controls the tray
 
 Shortcut: in toggle mode, the shortcut starts and stops the dictation. In hold mode, the key-down starts it and the key-up stops it. A press shorter than 0.3 s cancels it, so that no empty audio goes to ChatGPT. The global shortcut plugin of Tauri gives both key events on macOS, Windows, and X11, so the shortcut needs no key hook and no Accessibility permission. `Moulin --toggle` starts or stops a dictation, so that a system shortcut can run it. If Moulin does not run, this command starts Moulin and the dictation.
 
+Media: the setting "Keep / Pause / Lower media during dictation" has three modes. The settings window shows it as a sentence that starts with its control. The media follows the state ([app.rs](../src-tauri/src/app.rs), `set_state`). When the state becomes "recording", Moulin pauses the media that plays (Pause), or lowers the volume of the computer (Lower). When the state changes from "recording" (the stop, the cancel, an error), and when Moulin quits, Moulin sets the media back. A thread of Moulin runs these calls in their order, and each call waits a maximum of 2 s for the other app (3 s for a program that Moulin runs, for example osascript). The code is in [media/](../src-tauri/src/media/).
+
+Pause: Moulin plays again only the media that it paused. A play goes only to a player that is paused, because a play to a stopped player starts its track again from the start. A player that applies the pause late, for example after a very short dictation, gets 1 s. Each system has its own media interface:
+
+- Windows: the media sessions of the system (`GlobalSystemMediaTransportControlsSessionManager`), which the media controls of Windows show. A browser has one session, for its active tab.
+- Linux: MPRIS on the D-Bus session bus, on all desktops. Moulin skips `playerctld`: this relay sends each command to another player, which Moulin controls directly.
+- macOS: Now Playing. Only the app that the Control Center shows gets the commands. Since macOS 15.4, macOS gives the state of Now Playing only to its own programs, so osascript reads the state and sends the command ([now_playing.js](../src-tauri/src/media/now_playing.js)). This needs macOS 14 or later.
+
+Lower: Moulin lowers the volume of the output device by the percent of the setting ("Lower media during dictation by 50%"), from 10 % to 100 % (silence) in steps of 10. The settings file keeps the volume that stays (`"mediaVolume": 50`). After the recording, Moulin sets the volume back only if the user did not change it. Moulin changes the volume of the device, not the volume of the media apps: macOS has no volume for one app, and Windows and Linux keep the volume of an app after a restart of the app, so a stop of Moulin during a recording would keep the music quiet with no visible reason.
+
+- Windows: Core Audio (`IAudioEndpointVolume`) on the default output device.
+- Linux: `pactl` on the default sink (PulseAudio, and PipeWire with pipewire-pulse), or `wpctl` (PipeWire) when `pactl` is missing.
+- macOS: osascript (`set volume output volume`), which needs no permission. Some devices have no volume, for example a display.
+
 Cloudflare check: Cloudflare protects chatgpt.com from bots. Sometimes it refuses a request with HTTP 403 and the header `cf-mitigated: challenge`, until a page passes a check. The light page is plain text, so it cannot run the check. After a refusal, Moulin loads the full page in the hidden window, waits up to 10 s for a new `cf_clearance` cookie, and sends the request again. After a second refusal, Moulin shows the window, because the check can need a click. It waits up to 2 minutes, or until the user closes the window, and then it sends the request a last time. After a last refusal, the settings window tells the next step, and Moulin keeps the recording.
 
 Data: Moulin keeps `settings.json` in `~/Library/Application Support/app.moulin` (macOS), `%APPDATA%\app.moulin` (Windows), or `~/.config/app.moulin` (Linux). The ChatGPT session is in `~/Library/WebKit/app.moulin/WebsiteDataStore` (macOS), `%LOCALAPPDATA%\app.moulin\chatgpt` (Windows), or `~/.local/share/app.moulin/chatgpt` (Linux).
@@ -49,6 +63,7 @@ The Rust code in [src-tauri/src/](../src-tauri/src/):
 | [chatgpt/](../src-tauri/src/chatgpt/) | The hidden chatgpt.com window, the bridge that runs code in its page, the upload, and the Cloudflare check. |
 | [audio/](../src-tauri/src/audio/) | The recorder, the resampler, and the WAV files. |
 | [paste.rs](../src-tauri/src/paste.rs) | The paste on each system. |
+| [media/](../src-tauri/src/media/) | The pause of the media, or the lower volume, during a dictation, on each system. |
 | [platform/](../src-tauri/src/platform/) | The parts that are different on each system: the pop-up window, the macOS permissions, and the login item. |
 | [settings.rs](../src-tauri/src/settings.rs), [options.rs](../src-tauri/src/options.rs) | The settings file, and the command line options. |
 | [e2e/](../src-tauri/src/e2e/), [capture.rs](../src-tauri/src/capture.rs), [report.rs](../src-tauri/src/report.rs) | The test modes, and their report files. |
@@ -69,11 +84,17 @@ You need Node.js, Rust (install it with [rustup](https://rustup.rs)), and the [T
 | `npm run e2e:dev` | The same test from the sources. |
 | `npm run e2e -- --hold` | The E2E test in hold mode (macOS, with a shortcut from F1 to F20). |
 | `npm run e2e -- --challenge` | The E2E test with a fake Cloudflare refusal of the first upload. |
+| `npm run e2e -- --media` | The E2E test with two test players, for the mode Pause of the media setting (see below). |
+| `npm run e2e -- --media=lower` | The E2E test of the volume, for the mode Lower (see below). |
 | `npm run capture` | Shows the ChatGPT window. Do one dictation with the button of the page: Moulin writes the names and the shapes of the request (not the values) to `artifacts/capture-<time>.json`. |
 | `npm run icons` | Makes all the images from [website/mill.js](../website/mill.js): the app icon and the tray images in `src-tauri/icons/`, the icon of the settings window, and the images of the website and the README. |
 | `npm run sample` | Makes `tests/fr-sample.wav` from `tests/fr-sample.txt` with `say` and ffmpeg. |
 
 The E2E test does one full dictation: start, stop, upload, and clipboard. The recorder plays the sample one time instead of the microphone. A second Moulin process with `--toggle` starts and stops the dictation, like a system shortcut. The test never pastes. It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, and the states of the tray and the pop-up. On macOS, it also checks that the pop-up shows at the bottom center of the screen that the user works on. It writes a report and the recording to `artifacts/`. It needs a signed-in session, and it replaces the content of the clipboard.
+
+With `--media`, the test also starts two test players on the media interface of the system: a WinRT MediaPlayer in PowerShell on Windows, an MPRIS player on the session bus on Linux, and a small Swift app on macOS (it needs the Xcode Command Line Tools). Moulin must pause the player that plays and play it again after the stop, and it must not change the player that is paused. Then a quick tap starts a dictation and cancels it at once, often before the pause: the player must play again. On Linux and macOS, the test players apply each command after 0.6 s, like a slow app, so that the quick tap always comes before the pause. Last, the player that played quits, and one more quick tap comes while nothing plays: the paused player must not change. Each player writes its own states, so the report shows the times of the pause and of the play. The test also pauses other media that plays on the computer, and plays it again.
+
+With `--media=lower`, the test sets the volume to 40 %, and a watcher reports each change of the volume: PowerShell with Core Audio on Windows, `pactl` on Linux, and osascript on macOS. During the recording, the volume must be the percent of the setting, and after the stop, 40 % again. After a quick tap, the volume must also be 40 %. Then "the user" sets the volume to 60 % during a recording, and Moulin must keep it. At the end, the test sets back the volume that the user had before the test.
 
 ## Release
 

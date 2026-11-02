@@ -58,9 +58,29 @@ function render(snapshot) {
     button.tabIndex = on ? 0 : -1;
   }
   $('mode-hint').textContent = MODE_HINTS[settings.mode] || MODE_HINTS.toggle;
+  for (const button of document.querySelectorAll('[data-media]')) {
+    const on = button.dataset.media === settings.media;
+    button.setAttribute('aria-checked', String(on));
+    button.tabIndex = on ? 0 : -1;
+  }
+  // The amount, and the "by" at the end of the sentence, show only in "lower" mode. A button at its limit does
+  // nothing, so it shows as disabled.
+  $('media-by').hidden = $('media-lower').hidden = settings.media !== 'lower';
+  $('media-amount').textContent = `${amount(settings)}%`;
+  for (const button of document.querySelectorAll('[data-step]')) button.disabled = nextAmount(button) === amount(settings);
   for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) $(key).checked = settings[key];
   $('accessibility').hidden = !(snapshot.platform === 'macos' && settings.autoPaste && !snapshot.accessibility);
   if ([...$('microphone').options].some((o) => o.value === settings.microphoneId)) $('microphone').value = settings.microphoneId;
+}
+
+// How much the "lower" mode lowers the volume, in percent. The settings keep the volume that stays.
+function amount(settings) {
+  return 100 - settings.mediaVolume;
+}
+
+// The amount after a push of a button of the stepper: a step of 10, from 10 % to 100 % (silence).
+function nextAmount(button) {
+  return Math.min(100, Math.max(10, amount(current.settings) + Number(button.dataset.step)));
 }
 
 async function update(patch) {
@@ -115,6 +135,12 @@ for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) {
 $('microphone').addEventListener('change', (event) => update({ microphoneId: event.target.value }));
 for (const button of document.querySelectorAll('[data-mode]')) {
   button.addEventListener('click', () => update({ mode: button.dataset.mode }));
+}
+for (const button of document.querySelectorAll('[data-media]')) {
+  button.addEventListener('click', () => update({ media: button.dataset.media }));
+}
+for (const button of document.querySelectorAll('[data-step]')) {
+  button.addEventListener('click', () => update({ mediaVolume: 100 - nextAmount(button) }));
 }
 $('open-accessibility').addEventListener('click', () => invoke('open_accessibility'));
 

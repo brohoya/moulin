@@ -2,7 +2,7 @@
 use crate::{
     audio,
     chatgpt::{self, check},
-    dictation,
+    dictation, media,
     options::{Mode, Options},
     platform,
     settings::{self, HotkeyMode, Settings},
@@ -157,15 +157,23 @@ pub fn on_main(app: &AppHandle, step: impl FnOnce(&AppHandle) + Send + 'static) 
     let _ = app.run_on_main_thread(move || step(&handle));
 }
 
-/// Changes the state and its text. The tray, the settings window, and the E2E test follow the change.
+/// Changes the state and its text. The tray, the settings window, the media, and the E2E test follow the change.
 pub fn set_state(app: &AppHandle, next: State, text: impl Into<String>) {
     let text = text.into();
     println!("[{}] {text}", next.as_str());
-    {
+    let (was, media, volume) = {
         let mut core = moulin(app).core();
-        core.state = next;
+        let was = std::mem::replace(&mut core.state, next);
         core.status = text;
         core.notice = None;
+        (was, core.settings.media, core.settings.media_volume)
+    };
+    // The media pauses, or the volume goes down, while Moulin records. Each end of the recording sets it back: the stop,
+    // the cancel, an error, and any other change of the state.
+    match (was == State::Recording, next == State::Recording) {
+        (false, true) => media::quiet(media, volume),
+        (true, false) => media::restore(),
+        _ => {}
     }
     tray::update(app);
     ui::settings::push_status(app);

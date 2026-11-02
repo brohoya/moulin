@@ -39,7 +39,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function runWithOpen(args) {
   const log = path.join(os.tmpdir(), `moulin-e2e-${process.pid}`);
   const startedAt = Date.now();
-  // The app does not get the environment of the terminal. PATH lets it find ffmpeg and ffprobe.
+  // The app does not get the environment of the terminal. PATH lets it find the programs of the test, for example swiftc.
   const open = spawnSync('open', ['-W', '-n', '--env', `PATH=${process.env.PATH}`, '--stdout', `${log}.out`, '--stderr', `${log}.err`, bundle, '--args', ...args], { stdio: 'inherit' });
   for (const [file, stream] of [[`${log}.out`, process.stdout], [`${log}.err`, process.stderr]]) {
     if (!fs.existsSync(file)) continue;

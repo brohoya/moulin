@@ -71,13 +71,26 @@
       <label class="label" for="microphone">Microphone</label>
       <select id="microphone"></select>
     </div>
-    <label class="row">
-      <div class="label">Start Moulin at login</div>
-      <input id="openAtLogin" class="switch" type="checkbox">
-    </label>
+    <div class="row">
+      <div class="segmented" role="radiogroup" aria-labelledby="media-label">
+        <button type="button" role="radio" data-media="off" aria-checked="true">Keep</button>
+        <button type="button" role="radio" data-media="pause" aria-checked="false">Pause</button>
+        <button type="button" role="radio" data-media="lower" aria-checked="false">Lower</button>
+      </div>
+      <div id="media-label" class="label sentence">media during dictation<span id="media-by" hidden> by</span></div>
+      <div id="media-lower" class="stepper" role="group" aria-label="Lower the volume by" hidden>
+        <button type="button" data-step="-10" aria-label="Lower less"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6h7"/></svg></button>
+        <output id="media-amount" aria-live="polite"></output>
+        <button type="button" data-step="10" aria-label="Lower more"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6h7M6 2.5v7"/></svg></button>
+      </div>
+    </div>
     <label class="row">
       <div class="label">Show the pop-up during a dictation</div>
       <input id="showOverlay" class="switch" type="checkbox">
+    </label>
+    <label class="row">
+      <div class="label">Start Moulin at login</div>
+      <input id="openAtLogin" class="switch" type="checkbox">
     </label>
   </section>
 

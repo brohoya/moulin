@@ -2329,7 +2329,10 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tokio",
  "uuid",
+ "windows",
+ "windows-future",
  "windows-registry",
+ "zbus",
 ]
 
 [[package]]
