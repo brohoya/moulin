@@ -167,7 +167,9 @@ async function loadMicrophones() {
   } catch {
     // The list stays at "System default".
   }
+  // The field keeps its button, which shows the chosen microphone in WebView2 (see settings.html).
   $('microphone').replaceChildren(
+    ...$('microphone').querySelectorAll('button'),
     new Option('System default', ''),
     ...devices.map((d, i) => new Option(d.label || `Microphone ${i + 1}`, d.id)),
   );

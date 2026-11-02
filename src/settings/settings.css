@@ -20,7 +20,8 @@
   --cap-hover: #f6f8f9;
   --cap-edge: rgb(35 73 59 / 0.2);
   --cap-ring: rgb(35 73 59 / 0.1);
-  --option: #eef3f5;
+  --menu: #ffffff;
+  --menu-shadow: 0 12px 32px rgb(35 73 59 / 0.18), 0 0 0 1px rgb(35 73 59 / 0.08);
   --signal: #ff3b30;
   --ok: #2f9e5b;
   --warn: #c76a00;
@@ -48,7 +49,8 @@
     --cap-hover: rgb(243 234 214 / 0.24);
     --cap-edge: rgb(0 0 0 / 0.3);
     --cap-ring: transparent;
-    --option: #23493b;
+    --menu: #23493b;
+    --menu-shadow: 0 12px 32px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(243 234 214 / 0.1);
     --ok: #6ee7a0;
     --warn: #ffb547;
     --error: #ff8a80;
@@ -202,8 +204,8 @@ select {
 
 select:hover { background: var(--well-hover); }
 
-/* The open list of the system takes these colors on Windows. */
-option { background: var(--option); color: var(--text); }
+/* An older web view on Windows shows the list of the system, with these colors. */
+option { background: var(--menu); color: var(--text); }
 
 .select svg {
   position: absolute;
@@ -218,6 +220,64 @@ option { background: var(--option); color: var(--text); }
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: none;
+}
+
+/* When the web view supports it (WebView2 on Windows), the page draws the open list, so the list gets the look of the
+   page. The other web views show the menu of the system. */
+@supports (appearance: base-select) {
+  select, ::picker(select) { appearance: base-select; }
+
+  /* A fixed width: the width of the text does not change it when the user chooses another microphone. */
+  select { width: 220px; align-items: center; }
+
+  /* The field shows the chosen microphone on one line, with "…" when the name is too long. */
+  select > button, select > button:hover {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+  }
+
+  selectedcontent { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+  /* The chevron of the page (see .select svg) replaces the arrow of the list. */
+  select::picker-icon { display: none; }
+
+  select:open { background: var(--well-hover); }
+
+  /* The list opens below the field, along its right edge. The rows under the field leave room for about seven
+     microphones, and a longer list scrolls. The list has no other position: with the fallback positions, the web view
+     also opens a short list above the field. */
+  ::picker(select) {
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: none;
+    max-height: calc(100% - 12px);
+    margin: 4px 0;
+    padding: 4px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--menu);
+    box-shadow: var(--menu-shadow);
+    scrollbar-width: thin;
+    scrollbar-color: var(--track) transparent;
+  }
+
+  option {
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: transparent;
+  }
+
+  option:hover { background: var(--well); }
+
+  option:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+
+  option:checked { font-weight: 600; }
 }
 
 /* A row that reads as a sentence: the control comes first ("Pause media during a dictation"). The text stays on one
