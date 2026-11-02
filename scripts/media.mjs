@@ -221,15 +221,15 @@ export function demoSvg() {
   <rect x="178" y="70" width="604" height="300" rx="14" fill="#FFFFFF"/>
   <rect x="178.5" y="70.5" width="603" height="299" rx="13.5" fill="none" stroke="${P.land}" stroke-opacity="0.14"/>
   <circle cx="202" cy="93" r="6.5" fill="#FF5F57"/><circle cx="223" cy="93" r="6.5" fill="#FEBC2E"/><circle cx="244" cy="93" r="6.5" fill="#28C840"/>
-  <text x="480" y="98" class="wtitle" text-anchor="middle">Standup</text>
+  <text x="480" y="98" class="wtitle" text-anchor="middle">Ode to the mill</text>
   <path d="M178 116 H782" stroke="#000" stroke-opacity="0.07"/>
   <text x="214" y="150" class="date">Wednesday, October 28</text>
-  ${text(186, 'Release 2.4 is on the cluster. The build took 12 minutes,')}
-  ${text(213, 'and the CI failed twice on a load balancer timeout.')}
+  ${text(186, 'The old mill turns so slowly on the hill.')}
+  ${text(213, 'It keeps my secrets, and it always will.')}
   <rect class="flash" x="204" y="234" width="556" height="66" rx="6" fill="#DCEAE2"/>
   <g class="pasted">
-    ${text(258, 'The error rate went from 4.5% to 0.8%. Can you check the')}
-    <text x="214" y="285" class="body">logs in Grafana before the 3 pm meeting?<tspan class="caret" dx="1">|</tspan></text>
+    ${text(258, 'But the wind carries my words out to sea, and now every')}
+    <text x="214" y="285" class="body">fish knows the croissant thief is me.<tspan class="caret" dx="1">|</tspan></text>
   </g>
   <g class="caret0"><text x="212" y="258" class="body"><tspan class="caret">|</tspan></text></g>
 
