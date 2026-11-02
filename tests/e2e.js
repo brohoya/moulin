@@ -62,6 +62,14 @@ function runWithOpen(args) {
     if (process.platform === 'win32') spawnSync('taskkill', ['/IM', `${name}.exe`]);
     else spawnSync('pkill', ['-TERM', '-x', name]);
     for (let i = 0; i < 50 && isRunning(); i++) await sleep(200);
+    // Windows: the tray app does not quit on a request to close its windows.
+    if (process.platform === 'win32' && isRunning()) spawnSync('taskkill', ['/F', '/IM', `${name}.exe`]);
+    for (let i = 0; i < 25 && isRunning(); i++) await sleep(200);
+    // A running Moulin gets the arguments of the test and keeps them, so the test would not run.
+    if (isRunning()) {
+      console.error(`${name} still runs. Quit it, then run the test again.`);
+      process.exit(1);
+    }
   }
   console.log(`E2E in ${binary}`);
   // Extra arguments go to the test, for example --hold (npm run e2e -- --hold).
