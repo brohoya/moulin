@@ -56,17 +56,19 @@ pub async fn web_memory_mb(_window: &WebviewWindow) -> Option<u64> {
     None
 }
 
-/// The login item on Windows: the Run key of the user. The value name is the app ID, so a new path of the app
-/// replaces the old one.
+/// The login item on Windows: the Run key of the user. The value name is the product name of tauri.conf.json, because
+/// the uninstaller removes the value with this name. A new path of the app replaces the old one.
 #[cfg(windows)]
 pub fn set_login_item(on: bool) -> Result<(), String> {
     let key = windows_registry::CURRENT_USER.create("Software\\Microsoft\\Windows\\CurrentVersion\\Run").map_err(|err| err.to_string())?;
+    // Moulin 1.0 used the app ID as the value name, which the uninstaller does not remove.
+    let _ = key.remove_value("app.moulin");
     if !on {
-        let _ = key.remove_value("app.moulin");
+        let _ = key.remove_value("Moulin");
         return Ok(());
     }
     let exe = std::env::current_exe().map_err(|err| err.to_string())?;
-    key.set_string("app.moulin", format!("\"{}\"", exe.display())).map_err(|err| err.to_string())
+    key.set_string("Moulin", format!("\"{}\"", exe.display())).map_err(|err| err.to_string())
 }
 
 /// The login item on Linux: a desktop file in ~/.config/autostart. An AppImage gives its own path in APPIMAGE.
