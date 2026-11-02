@@ -104,6 +104,8 @@ With `--media=lower`, the test sets the volume to 40 %, and a watcher reports ea
 
 The workflow [release.yml](../.github/workflows/release.yml) builds Moulin on macOS, Windows, and Linux, and publishes the release in about 8 minutes. The file names do not include the version, so the website, the README, and `install.sh` always give the latest release.
 
+The workflow signs the macOS app with the certificate of `npm run signing:setup`, from two secrets of the repository: `MAC_CERTIFICATE` (the certificate and its key as a .p12 file, in base64) and `MAC_CERTIFICATE_PASSWORD`. macOS ties the permissions to the bundle ID and the certificate, so it keeps them after an update. Apple does not know this certificate, so a download in the browser still needs Open Anyway. Without the secrets, the macOS build stops.
+
 - To test the builds without a release, run the workflow by hand: Actions > Release > Run workflow. The files stay on the page of the run.
 - To delete a release and its tag, run `gh release delete v1.0.0 --cleanup-tag --yes`, then `git tag -d v1.0.0`.
 
