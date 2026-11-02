@@ -104,7 +104,7 @@ impl Test {
         let full_page = chatgpt::measure_full_page(&self.app, Duration::from_secs(8)).await;
         let light_page = chatgpt::memory_mb(&self.app).await;
         self.report["memoryMB"] = json!({ "app": tools::own_memory_mb(), "lightPage": light_page, "fullPage": full_page });
-        let sample_s = tools::seconds(&self.sample).await?;
+        let sample_s = tools::seconds(&self.sample)?;
         self.report["sample"] = json!({ "file": file_name(&self.sample), "seconds": sample_s });
         let check_pill = self.challenge.then(|| self.watch_check_pill());
         if self.challenge {
@@ -112,7 +112,7 @@ impl Test {
         }
         let (recording, transcription) = self.dictate(sample_s).await?;
         let clipboard = self.app.clipboard().read_text().unwrap_or_default();
-        self.check_recording(&recording, sample_s).await;
+        self.check_recording(&recording, sample_s);
         self.check_upload(&transcription, page, &clipboard);
         if let Some(check_pill) = check_pill {
             self.check_cloudflare(&transcription, check_pill.await.unwrap_or(Value::Null));
@@ -286,11 +286,11 @@ impl Test {
     }
 
     /// The audio: speech during the sample, and silence after its end (the sample plays one time).
-    async fn check_recording(&mut self, recording: &Recording, sample_s: f64) {
+    fn check_recording(&mut self, recording: &Recording, sample_s: f64) {
         let file = self.audio_file();
         let tail_from_s = round(sample_s + 0.5, 2);
-        let speech_db = tools::max_volume_db(&file, 0.0, Some(sample_s)).await;
-        let tail_db = tools::max_volume_db(&file, tail_from_s, None).await;
+        let speech_db = tools::max_volume_db(&file, 0.0, Some(sample_s));
+        let tail_db = tools::max_volume_db(&file, tail_from_s, None);
         let silent_tail = tail_db.is_some_and(|v| v < -60.0);
         self.report["recording"] = json!({
             "file": file_name(&file),

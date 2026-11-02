@@ -2,7 +2,7 @@
 //! loudness about 14 times per second, for the pop-up. In the E2E test, the sample WAV plays one time instead of
 //! the microphone, then silence follows until the stop.
 mod resample;
-mod wav;
+pub mod wav;
 
 use cpal::{
     FromSample, Sample, SampleFormat, SizedSample,

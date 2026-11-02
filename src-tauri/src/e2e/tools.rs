@@ -1,5 +1,6 @@
-//! The programs that the test runs: ffprobe and ffmpeg for the audio, osascript for the key of the hold mode,
-//! a second Moulin for the toggle, and ps and sw_vers for the facts of the report.
+//! The measures of the audio, and the programs that the test runs: osascript for the key of the hold mode, a second
+//! Moulin for the toggle, and ps and sw_vers for the facts of the report.
+use crate::audio::wav;
 use serde_json::{Value, json};
 use std::{
     path::Path,
@@ -16,37 +17,20 @@ async fn output(command: &str, args: Vec<String>) -> Result<Output, String> {
         .map_err(|err| format!("{command}: {err}"))
 }
 
-/// The length of an audio file, in seconds.
-pub async fn seconds(file: &Path) -> Result<f64, String> {
-    let args = ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0"]
-        .map(String::from)
-        .into_iter()
-        .chain([file.display().to_string()]);
-    let out = output("ffprobe", args.collect()).await?;
-    String::from_utf8_lossy(&out.stdout).trim().parse().map_err(|_| format!("ffprobe cannot read {}", file.display()))
+/// The length of a WAV file (16-bit PCM), in seconds.
+pub fn seconds(file: &Path) -> Result<f64, String> {
+    let (rate, samples) = wav::read(file).map_err(|err| format!("{}: {err}", file.display()))?;
+    Ok(samples.len() as f64 / f64::from(rate))
 }
 
-/// The loudest level of the recording between two times, in dB. Digital silence gives -91 dB or -inf.
-pub async fn max_volume_db(file: &Path, from_s: f64, to_s: Option<f64>) -> Option<f64> {
-    let trim = match to_s {
-        Some(to) => format!("atrim=start={from_s}:end={to}"),
-        None => format!("atrim=start={from_s}"),
-    };
-    let args = vec![
-        "-hide_banner".into(),
-        "-nostats".into(),
-        "-i".into(),
-        file.display().to_string(),
-        "-af".into(),
-        format!("{trim},volumedetect"),
-        "-f".into(),
-        "null".into(),
-        "-".into(),
-    ];
-    let out = output("ffmpeg", args).await.ok()?;
-    let text = String::from_utf8_lossy(&out.stderr);
-    let value = text.lines().find_map(|line| line.split("max_volume: ").nth(1))?.trim_end_matches(" dB").trim();
-    if value == "-inf" { Some(f64::NEG_INFINITY) } else { value.parse().ok() }
+/// The loudest sample of a WAV file (16-bit PCM) between two times, in dB of the full scale, like the "max_volume" of
+/// ffmpeg. Digital silence gives -inf. A part with no audio (for example after the end of the file) gives no value.
+pub fn max_volume_db(file: &Path, from_s: f64, to_s: Option<f64>) -> Option<f64> {
+    let (rate, samples) = wav::read(file).ok()?;
+    let index = |s: f64| ((s * f64::from(rate)) as usize).min(samples.len());
+    let part = samples.get(index(from_s)..to_s.map_or(samples.len(), index)).filter(|part| !part.is_empty())?;
+    let peak = part.iter().fold(0f32, |peak, sample| peak.max(sample.abs()));
+    Some(20.0 * f64::from(peak).log10())
 }
 
 /// A level in dB for the report. JSON has no infinity, so -inf becomes a string.

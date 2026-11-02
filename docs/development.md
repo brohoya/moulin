@@ -73,7 +73,7 @@ You need Node.js, Rust (install it with [rustup](https://rustup.rs)), and the [T
 | `npm run icons` | Makes all the images from [website/mill.js](../website/mill.js): the app icon and the tray images in `src-tauri/icons/`, the icon of the settings window, and the images of the website and the README. |
 | `npm run sample` | Makes `tests/fr-sample.wav` from `tests/fr-sample.txt` with `say` and ffmpeg. |
 
-The E2E test does one full dictation: start, stop, upload, and clipboard. The recorder plays the sample one time instead of the microphone. A second Moulin process with `--toggle` starts and stops the dictation, like a system shortcut. The test never pastes. It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, and the states of the tray and the pop-up. On macOS, it also checks that the pop-up shows at the bottom center of the screen that the user works on. It writes a report and the recording to `artifacts/`. It needs a signed-in session and ffmpeg, and it replaces the content of the clipboard.
+The E2E test does one full dictation: start, stop, upload, and clipboard. The recorder plays the sample one time instead of the microphone. A second Moulin process with `--toggle` starts and stops the dictation, like a system shortcut. The test never pastes. It checks the HTTP status, the word error rate (maximum 0.25), the clipboard, and the states of the tray and the pop-up. On macOS, it also checks that the pop-up shows at the bottom center of the screen that the user works on. It writes a report and the recording to `artifacts/`. It needs a signed-in session, and it replaces the content of the clipboard.
 
 ## Release
 
