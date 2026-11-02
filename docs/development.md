@@ -133,8 +133,8 @@ Measured with ChatGPT Plus on macOS 26.5. `npm run capture` records the request 
 | `language=en` with French audio | French text: the server ignores `language`. |
 | A fetch from the page | Cloudflare refuses it only rarely (see "Cloudflare check"). |
 | 101 s of speech | HTTP 200 in 5.2 s, with no missing text. |
-| 151 s, five repeats of the sample | One repeat is missing in the text. |
+| 151 s, five repeats of the first sample (28 s) | One repeat is missing in the text. |
 | `usage_limit_reached`, `usage_not_included` | Not seen. Moulin shows a message for each. |
-| Word error rate on the sample | Moulin: 0.047 to 0.071. The dictation button of the page: 0.063. |
+| Word error rate on the first sample (28 s, 85 words) | Moulin: 0.047 to 0.071. The dictation button of the page: 0.063. |
 | From the stop to the clipboard, 30 s of audio | 1.4 to 1.7 s. |
 | Memory of the Moulin process, idle | 103 to 106 MB. The WebKit processes are system services, so `ps` does not show them as processes of Moulin. |
