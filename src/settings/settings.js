@@ -21,9 +21,11 @@ const MODE_HINTS = {
 let current = null;
 let capturing = false;
 
-function pretty(accelerator) {
-  const parts = accelerator.split('+');
-  return IS_MAC ? parts.map((p) => SYMBOLS[p] || p).join('') : parts.map((p) => SYMBOLS[p] || p).join('+');
+// The shortcut shows as keys of the keyboard: one key for each part, for example Ctrl, Shift, and Space.
+function showHotkey(accelerator) {
+  const keys = accelerator ? accelerator.split('+').map((p) => Object.assign(document.createElement('kbd'), { textContent: SYMBOLS[p] || p })) : ['None'];
+  $('hotkey').classList.toggle('empty', !accelerator);
+  $('hotkey').replaceChildren(...keys);
 }
 
 function keyOf(event) {
@@ -49,7 +51,7 @@ function render(snapshot) {
   $('account').textContent = snapshot.signedIn ? 'Signed in to ChatGPT' : 'Not signed in';
   $('sign-in').hidden = snapshot.signedIn;
   $('sign-out').hidden = !snapshot.signedIn;
-  if (!capturing) $('hotkey').textContent = settings.hotkey ? pretty(settings.hotkey) : 'None';
+  if (!capturing) showHotkey(settings.hotkey);
   $('hotkey-error').hidden = !snapshot.hotkeyError;
   $('hotkey-error').textContent = snapshot.hotkeyError || '';
   for (const button of document.querySelectorAll('[data-mode]')) {
@@ -100,6 +102,7 @@ $('hotkey').addEventListener('click', () => {
   if (capturing) return endCapture();
   capturing = true;
   invoke('settings_capture', { on: true });
+  $('hotkey').classList.remove('empty');
   $('hotkey').classList.add('capturing');
   $('hotkey').textContent = 'Press keys…';
   $('hotkey-error').hidden = true;
