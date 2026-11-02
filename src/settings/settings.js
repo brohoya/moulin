@@ -72,7 +72,7 @@ function render(snapshot) {
   for (const button of document.querySelectorAll('[data-step]')) button.disabled = nextAmount(button) === amount(settings);
   for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) $(key).checked = settings[key];
   $('accessibility').hidden = !(snapshot.platform === 'macos' && settings.autoPaste && !snapshot.accessibility);
-  if ([...$('microphone').options].some((o) => o.value === settings.microphoneId)) $('microphone').value = settings.microphoneId;
+  showMicrophone(settings.microphoneId);
 }
 
 // How much the "lower" mode lowers the volume, in percent. The settings keep the volume that stays.
@@ -135,7 +135,6 @@ for (const key of ['autoPaste', 'openAtLogin', 'showOverlay']) {
   $(key).addEventListener('change', (event) => update({ [key]: event.target.checked }));
 }
 
-$('microphone').addEventListener('change', (event) => update({ microphoneId: event.target.value }));
 for (const button of document.querySelectorAll('[data-mode]')) {
   button.addEventListener('click', () => update({ mode: button.dataset.mode }));
 }
@@ -158,6 +157,89 @@ $('sign-out').addEventListener('click', async () => {
   render(await invoke('account_sign_out'));
 });
 
+// The list of microphones. The page draws the list, because a <select> shows the menu of the system, which looks
+// different on each system. The focus stays on the field, and the keys move a highlight in the list, as in the
+// "select-only combobox" of the ARIA Authoring Practices.
+const field = $('microphone');
+const list = $('microphones');
+let active = null;
+
+// The field shows the chosen microphone. A microphone that is not in the list (for example, an unplugged headset)
+// shows as "System default", because the recording then uses the default microphone.
+function showMicrophone(id) {
+  const options = [...list.children];
+  const chosen = options.find((o) => o.dataset.id === id) || options[0];
+  if (!chosen) return;
+  for (const option of options) option.setAttribute('aria-selected', String(option === chosen));
+  field.textContent = chosen.textContent;
+}
+
+function highlight(option, withKeys) {
+  active?.classList.remove('active');
+  active = option;
+  active.classList.add('active');
+  list.classList.toggle('keys', withKeys);
+  field.setAttribute('aria-activedescendant', active.id);
+  if (withKeys) active.scrollIntoView({ block: 'nearest' });
+}
+
+function openList(withKeys) {
+  if (!list.firstElementChild) return; // The list is not loaded yet.
+  // The list stays in the window: it gets the height of the room under the field.
+  list.style.maxHeight = `${innerHeight - field.getBoundingClientRect().bottom - 16}px`;
+  list.hidden = false;
+  field.setAttribute('aria-expanded', 'true');
+  highlight(list.querySelector('[aria-selected="true"]') || list.firstElementChild, withKeys);
+}
+
+function closeList() {
+  list.hidden = true;
+  field.setAttribute('aria-expanded', 'false');
+  field.removeAttribute('aria-activedescendant');
+}
+
+function choose(option) {
+  closeList();
+  if (option.dataset.id !== current?.settings.microphoneId) update({ microphoneId: option.dataset.id });
+}
+
+// A press on the list keeps the focus on the field, so that the list stays open until the click.
+list.addEventListener('mousedown', (event) => event.preventDefault());
+field.addEventListener('click', () => {
+  if (list.hidden) openList(false);
+  else closeList();
+});
+// The list closes with no change when the focus goes away: Tab, a click in another place, or another window.
+field.addEventListener('blur', closeList);
+list.addEventListener('mousemove', (event) => {
+  const option = event.target.closest('[role="option"]');
+  if (option && (option !== active || list.classList.contains('keys'))) highlight(option, false);
+});
+list.addEventListener('click', (event) => {
+  const option = event.target.closest('[role="option"]');
+  if (option) choose(option);
+});
+// The arrows, Home, and End move the highlight. Enter or Space chooses the microphone, and Escape closes the list.
+// When the list is closed, these keys open it.
+field.addEventListener('keydown', (event) => {
+  const step = { ArrowDown: 1, ArrowUp: -1, Home: -Infinity, End: Infinity }[event.key];
+  const press = event.key === 'Enter' || event.key === ' ';
+  if (list.hidden) {
+    if (step === undefined && !press) return;
+    openList(true);
+  } else if (step !== undefined) {
+    const options = [...list.children];
+    highlight(options[Math.min(Math.max(options.indexOf(active) + step, 0), options.length - 1)], true);
+  } else if (press) {
+    choose(active);
+  } else if (event.key === 'Escape') {
+    closeList();
+  } else {
+    return;
+  }
+  event.preventDefault();
+});
+
 // Moulin lists the input devices of the system. The list loads again when the window gets the focus,
 // for example after the user plugs in a headset.
 async function loadMicrophones() {
@@ -167,13 +249,14 @@ async function loadMicrophones() {
   } catch {
     // The list stays at "System default".
   }
-  // The field keeps its button, which shows the chosen microphone in WebView2 (see settings.html).
-  $('microphone').replaceChildren(
-    ...$('microphone').querySelectorAll('button'),
-    new Option('System default', ''),
-    ...devices.map((d, i) => new Option(d.label || `Microphone ${i + 1}`, d.id)),
-  );
-  $('microphone').value = '';
+  const items = [{ id: '', label: 'System default' }, ...devices.map((d, i) => ({ id: d.id, label: d.label || `Microphone ${i + 1}` }))];
+  closeList();
+  list.replaceChildren(...items.map((item, i) => {
+    const option = Object.assign(document.createElement('div'), { id: `microphone-${i}`, textContent: item.label });
+    option.setAttribute('role', 'option');
+    option.dataset.id = item.id;
+    return option;
+  }));
   render(current);
 }
 

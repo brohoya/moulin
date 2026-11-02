@@ -50,11 +50,24 @@ pub fn microphones() -> Vec<Microphone> {
     let Ok(devices) = cpal::default_host().input_devices() else { return Vec::new() };
     devices
         .filter_map(|device| {
-            let id = device.id().ok()?.to_string();
-            let label = device.description().map(|d| d.name().to_owned()).unwrap_or_else(|_| id.clone());
-            Some(Microphone { id, label })
+            let id = device.id().ok()?;
+            if cfg!(target_os = "linux") && !is_card_input(id.id()) {
+                return None;
+            }
+            let label = device.description().map(|d| d.name().to_owned()).unwrap_or_else(|_| id.to_string());
+            Some(Microphone { id: id.to_string(), label })
         })
         .collect()
+}
+
+/// ALSA (Linux) gives each sound card several times (hw, plughw, sysdefault, dsnoop, and more), and also gives plugins
+/// that are not microphones (null, the rate converters, JACK, OSS, and more). The list keeps one entry for each input of
+/// a card: the plughw device, which converts the audio to the format of the recording, with the name of the card (for
+/// example "plughw:CARD=Device,DEV=0"). This name stays the same after a restart, but the number of a card can change.
+/// The sound server (PipeWire or PulseAudio) is the "System default" of the list.
+fn is_card_input(pcm: &str) -> bool {
+    let card = pcm.strip_prefix("plughw:CARD=").and_then(|rest| rest.split(',').next());
+    card.is_some_and(|card| !card.bytes().all(|b| b.is_ascii_digit()))
 }
 
 enum Stop {

@@ -68,8 +68,12 @@
   <h2>General</h2>
   <section>
     <div class="row">
-      <label class="label" for="microphone">Microphone</label>
-      <span class="select"><select id="microphone"><button><selectedcontent></selectedcontent></button></select><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg></span>
+      <div id="microphone-label" class="label">Microphone</div>
+      <div class="select">
+        <div id="microphone" class="field" role="combobox" tabindex="0" aria-labelledby="microphone-label" aria-controls="microphones" aria-expanded="false">System default</div>
+        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>
+        <div id="microphones" class="menu" role="listbox" aria-labelledby="microphone-label" hidden></div>
+      </div>
     </div>
     <div class="row">
       <div class="segmented" role="radiogroup" aria-labelledby="media-label">

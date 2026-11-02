@@ -163,7 +163,7 @@ section {
 
 .error { margin: 0; padding: 0 14px 10px; color: var(--error); font-size: 12px; }
 
-button, select {
+button {
   font: inherit;
   color: var(--text);
   background: var(--well);
@@ -183,27 +183,31 @@ button.primary {
 
 button.primary:hover { background: var(--button-hover); }
 
-button:focus-visible, select:focus-visible, .switch:focus-visible {
+button:focus-visible, .field:focus-visible, .switch:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 2px;
 }
 
-/* The list of microphones: the look of the other controls, with a chevron of the page (see settings.html). */
-.select { position: relative; display: inline-flex; min-width: 0; }
+/* The list of microphones: a field with the look of the other controls, and a list that the page draws (see
+   settings.js). The list looks the same on each system. */
+.select { position: relative; flex: none; }
 
-select {
-  appearance: none;
-  max-width: 260px;
+/* The field shows the chosen microphone on one line, with "…" when the name is too long. It has a fixed width: the width
+   of the text does not change it when the user chooses another microphone. */
+.field {
+  width: 220px;
   height: 30px;
   padding: 0 32px 0 12px;
+  border-radius: 8px;
+  background: var(--well);
+  line-height: 30px;
+  overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
   cursor: pointer;
 }
 
-select:hover { background: var(--well-hover); }
-
-/* An older web view on Windows shows the list of the system, with these colors. */
-option { background: var(--menu); color: var(--text); }
+.field:hover, .field[aria-expanded="true"] { background: var(--well-hover); }
 
 .select svg {
   position: absolute;
@@ -220,63 +224,41 @@ option { background: var(--menu); color: var(--text); }
   pointer-events: none;
 }
 
-/* When the web view supports it (WebView2 on Windows), the page draws the open list, so the list gets the look of the
-   page. The other web views show the menu of the system. */
-@supports (appearance: base-select) {
-  select, ::picker(select) { appearance: base-select; }
-
-  /* A fixed width: the width of the text does not change it when the user chooses another microphone. */
-  select { width: 220px; align-items: center; }
-
-  /* The field shows the chosen microphone on one line, with "…" when the name is too long. */
-  select > button, select > button:hover {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    min-width: 0;
-    padding: 0;
-    border-radius: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-  }
-
-  selectedcontent { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
-  /* The chevron of the page (see .select svg) replaces the arrow of the list. */
-  select::picker-icon { display: none; }
-
-  select:open { background: var(--well-hover); }
-
-  /* The list opens below the field, along its right edge. The rows under the field leave room for about seven
-     microphones, and a longer list scrolls. The list has no other position: with the fallback positions, the web view
-     also opens a short list above the field. */
-  ::picker(select) {
-    position-area: block-end span-inline-start;
-    position-try-fallbacks: none;
-    max-height: calc(100% - 12px);
-    margin: 4px 0;
-    padding: 4px;
-    border: 0;
-    border-radius: 10px;
-    background: var(--menu);
-    box-shadow: var(--menu-shadow);
-    scrollbar-width: thin;
-    scrollbar-color: var(--track) transparent;
-  }
-
-  option {
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: transparent;
-  }
-
-  option:hover { background: var(--well); }
-
-  option:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
-
-  option:checked { font-weight: 600; }
+/* The list opens below the field, along its right edge, and gets the width of the longest name. It stays in the side
+   margins of the window (24px for main, 14px for the row). The rows under the field leave room for about seven
+   microphones (settings.js sets the height), and a longer list scrolls. */
+.menu {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 4px);
+  right: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: calc(100vw - 62px);
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--menu);
+  box-shadow: var(--menu-shadow);
+  scrollbar-width: thin;
+  scrollbar-color: var(--track) transparent;
 }
+
+.menu [role="option"] {
+  padding: 6px 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* One highlight follows the pointer and the arrow keys. With the keys, it also gets an outline. */
+.menu .active { background: var(--well); }
+
+.menu.keys .active { outline: 2px solid var(--text); outline-offset: -2px; }
+
+.menu [aria-selected="true"] { font-weight: 600; }
 
 /* A row that reads as a sentence: the control comes first ("Pause media during a dictation"). The text stays on one
    line, so that the row and the window keep their height when the amount shows. */
@@ -437,7 +419,8 @@ option { background: var(--menu); color: var(--text); }
 
 /* High contrast (Windows): the system colors replace the backgrounds, so the controls get a border. */
 @media (forced-colors: active) {
-  button, select, .switch { border: 1px solid ButtonText; }
+  button, .field, .switch, .menu { border: 1px solid ButtonText; }
+  .menu .active { outline: 2px solid Highlight; outline-offset: -2px; }
   .switch::after { top: 1px; left: 1px; background: ButtonText; }
   .switch:checked { background: Highlight; }
   .switch:checked::after { background: HighlightText; }
